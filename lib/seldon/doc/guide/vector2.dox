@@ -1,0 +1,948 @@
+/*! \file vector2.dox
+    \brief Vector2.
+*/
+
+/*!
+\page vector2 Vector2
+
+<h2>Definition</h2>
+
+<p> Seldon::Vector2 is a structure that acts like a vector of full vectors. The inner vectors can be of any dimension, so that this structure is more flexible than a matrix. Seldon::Vector3 is similar to Seldon::Vector2 and manages vector of vector of vectors, the methods are similar to Seldon::Vector2. </p>
+
+<p> Vector2 is a template class: <code> Vector2<T, Allocator0, Allocator1></code>. <code>T</code> is the numerical type of the inner vectors.  <code>Allocator0</code> is the allocator for the inner vectors. It has the same default value as for vectors and matrices: SeldonDefaultAllocator<VectFull, T>.  <code>Allocator1</code> is the allocator for the vector of vectors. It is recommended to choose NewAlloc or, for more efficient in reallocations, MallocObject: these allocators can manage an array of inner vectors. The default allocator is MallocObject, in which case <code>Allocator1</code> is the same as <code>MallocObject<Vector<T, VectFull, Allocator0> ></code>.  </p>
+
+<h2>Declaration</h2>
+
+\precode
+#include "Seldon.hxx"
+
+// you need to include Vector2 and Vector3 files
+#include "vector/Vector2.cxx"
+#include "vector/Vector3.cxx"
+
+Vector2<double> V;
+\endprecode
+
+<p> This defines an empty vector (of vectors). If you include <code>SeldonLib.hxx</code>, the files Vector2.cxx and Vector3.cxx are already included:</p>
+
+\precode
+#include "SeldonLib.hxx"
+
+using namespace Seldon;
+
+Vector2<double> V;
+\endprecode
+
+<p>To define a Vector2 with 5 empty inner vectors: </p>
+
+\precode
+Vector2<double> V(5);
+\endprecode
+
+<p>To define a Vector2 with 3 inner vectors of size 2, 3 and 7: </p>
+
+\precode
+Vector<int> length(3);
+length(0) = 2;
+length(1) = 3;
+length(2) = 7;
+Vector2<double> V(length);
+\endprecode
+
+<h2>Use of Vector2</h2>
+
+<p> Seldon::Vector2 comes with the following methods: </p>
+
+<ul>
+
+  <li>\link Seldon::Vector2::Reallocate(int) Reallocate(int M)\endlink and \link Seldon::Vector2::Reallocate(int, int) Reallocate(int i, int N)\endlink which allow to reallocate the vector of vectors and the i-th inner vector, respectively.</li>
+
+  <li>\link Seldon::Vector2::GetLength() GetLength()\endlink which returns the number of inner vectors. </li>
+
+  <li>\link Seldon::Vector2::GetLength(int) GetLength(int i)\endlink which returns the length of an inner vector. </li>
+
+  <li>\link Seldon::Vector2::operator()(int) operator()(int i)\endlink which returns the i-th inner vector. </li>
+
+  <li>\link Seldon::Vector2::operator()(int, int) operator()(int i, int j)\endlink which returns the j-th element of the i-th inner vector. </li>
+
+</ul>
+
+<h2>Methods of Vector2 :</h2>
+
+<p>The other methods are described in the table below.</p>
+
+<table class="category-table">
+<tr class="category-table-tr-2">
+<td class="category-table-td"> <a href="#constructor"> Vector constructors </a> </td> <td></td></tr>
+<tr class="category-table-tr-1">
+ <td class="category-table-td"> <a href="#operator"> Vector operators </a> </td> <td></td></tr>
+<tr class="category-table-tr-2">
+ <td class="category-table-td"> <a href="#IsEmpty"> IsEmpty </a> </td>
+ <td class="category-table-td"> returns true if all inner vectors have 0-length </td> </tr>
+<tr class="category-table-tr-1">
+ <td class="category-table-td"> <a href="#GetLength"> GetLength </a> </td>
+ <td class="category-table-td"> returns the size of inner vectors or outer vectors </td> </tr>
+<tr class="category-table-tr-2">
+ <td class="category-table-td"> <a href="#GetLength"> GetSize </a> </td>
+ <td class="category-table-td"> returns the size of inner vector or outer vectors </td> </tr>
+<tr class="category-table-tr-1">
+ <td class="category-table-td"> <a href="#GetNelement"> GetNelement </a> </td>
+ <td class="category-table-td"> returns the total number of elements stored </td> </tr>
+<tr class="category-table-tr-2">
+ <td class="category-table-td"> <a href="#GetShape"> GetShape </a> </td>
+ <td class="category-table-td"> returns the number of elements contained in an inner vector </td> </tr>
+<tr class="category-table-tr-1">
+ <td class="category-table-td"> <a href="#Reallocate"> Reallocate </a> </td>
+ <td class="category-table-td"> modifies the size of outer vectors or inner vectors </td> </tr>
+<tr class="category-table-tr-2">
+ <td class="category-table-td"> <a href="#Select"> Select </a> </td>
+ <td class="category-table-td"> keeps a subset of inner vectors </td> </tr>
+<tr class="category-table-tr-1">
+ <td class="category-table-td"> <a href="#Flatten"> Flatten </a> </td>
+ <td class="category-table-td"> copies the elements into a simple vector </td> </tr>
+<tr class="category-table-tr-2">
+ <td class="category-table-td"> <a href="#PushBack"> PushBack </a> </td>
+ <td class="category-table-td"> appends outer or inner vectors at the end </td> </tr>
+<tr class="category-table-tr-1">
+ <td class="category-table-td"> <a href="#Clear"> Clear </a> </td>
+ <td class="category-table-td"> removes all elements of an inner or outer vector </td> </tr>
+<tr class="category-table-tr-2">
+ <td class="category-table-td"> <a href="#Fill"> Fill </a> </td>
+ <td class="category-table-td"> fills outer or inner vectors with the same value </td> </tr>
+<tr class="category-table-tr-1">
+ <td class="category-table-td"> <a href="#GetVector"> GetVector </a> </td>
+ <td class="category-table-td"> returns outer or inner vectors as reference </td> </tr>
+<tr class="category-table-tr-2">
+ <td class="category-table-td"> <a href="#Copy"> Copy </a> </td>
+ <td class="category-table-td"> copies a vector of vectors </td> </tr>
+<tr class="category-table-tr-1">
+ <td class="category-table-td"> <a href="#HasSameShape"> HasSameShape </a> </td>
+ <td class="category-table-td"> returns true if all inner vectors have the same size </td> </tr>
+<tr class="category-table-tr-2">
+ <td class="category-table-td"> <a href="#Print"> Print </a> </td>
+ <td class="category-table-td"> displays the object </td> </tr>
+ <tr class="category-table-tr-1">
+ <td class="category-table-td"> <a href="#Write"> Write </a> </td>
+ <td class="category-table-td"> writes the object in an output stream </td> </tr>
+ <tr class="category-table-tr-2">
+ <td class="category-table-td"> <a href="#Read"> Read </a> </td>
+ <td class="category-table-td"> reads the object from an output stream </td> </tr>
+</table>
+
+\section example An Example
+
+\includeexample{vector2.cpp}
+
+Output:
+
+\prescreen
+Vector 0: 2     2       
+Vector 1: 5     5       5       
+Vector 2: 2     2       2       2       2       2       2       
+First element of the second inner vector: 5
+Vector 0: 2     2       
+Vector 1: 5     5       5       
+Vector 2: 2     2       2       2       2       2       2       
+Vector 3: 0     1       2       3       
+After setting to -10 the second element of the last inner vector:
+Vector 0: 2     2       
+Vector 1: 5     5       5       
+Vector 2: 2     2       2       2       2       2       2       
+Vector 3: 0     -10     2       3       
+\endprescreen
+
+
+
+<div class="separator"><a name="constructor"></a></div>
+
+
+
+<h3>Vector2 constructors</h3>
+
+<h4>Syntax :</h4>
+ <pre class="syntax-box">
+  Vector2();
+  Vector2(int);
+  Vector2(Vector<int>);
+</pre>
+
+<h4> Example : </h4>
+\precode
+// default constructor -> empty vector of vectors
+Vector2<double> V;
+cout << "Number of elements "<< V.GetNelement() << endl; // should return 0 
+
+// then you can use Reallocate to fill the structure
+V.Reallocate(3); // 3 inner vectors
+V.Reallocate(0, 4); // first inner vector contains 4 elements
+V.Reallocate(1, 5); // second inner vector contains 5 elements
+V.Reallocate(2, 3); // third inner vector contains 3 elements
+// V.GetNelement() should return 3+4+5 = 12 
+
+// constructor specifying only the number of inner vectors
+Vector2<double> U(3);
+// then each inner vector can be initialized with Reallocate
+U.Reallocate(0, 4); // first inner vector contains 4 elements
+U.Reallocate(1, 5); // second inner vector contains 5 elements
+U.Reallocate(2, 3); // third inner vector contains 3 elements
+
+// constructor specifying the size of all the inner vectors
+Vector<int> shape(3);
+shape(0) = 4; 
+shape(1) = 5;
+shape(2) = 3;
+Vector2<double> W(shape);
+
+\endprecode
+
+
+<h4>Related topics : </h4>
+<p><a href="#Reallocate">Reallocate</a><br/>
+<a href="#GetNelement">GetNelement</a></p>
+
+
+<h4>Location :</h4>
+<p> Class Vector2<br/>
+Vector2.hxx Vector2.cxx</p>
+
+
+
+<div class="separator"><a name="operator"></a></div>
+
+
+
+<h3>Vector2 operators</h3>
+
+<h4>Syntax :</h4>
+ <pre class="syntax-box">
+  T& operator(int i, int j);
+  Vector<T>& operator(int i);
+</pre>
+
+<p> You can use the operator() to modify an inner vector so that class Vector2 can be
+ used exactly in the same way as an object Vector&lt;Vector&lt;T&gt; &gt;. You can use the notation V(i, j) as for matrices. </p> 
+
+<h4> Example : </h4>
+\precode
+// declaration of a vector with 3 inner vectors
+Vector2<double> U(3);
+// then each inner vector can be accessed directly with the operator()
+U(0).Reallocate(4); // first inner vector contains 4 elements
+U(1).Reallocate(5); // second inner vector contains 5 elements
+U(2).Reallocate(3); // third inner vector contains 3 elements
+
+// you can also use operator (i, j) to access elements of U
+U(0, 2) = 2.5;
+U(2, 1) = -0.8;
+
+\endprecode
+
+
+<h4>Related topics : </h4>
+<p><a href="#Reallocate">Reallocate</a><br/>
+<a href="#GetVector">GetVector</a></p>
+
+
+<h4>Location :</h4>
+<p> Class Vector2<br/>
+Vector2.hxx Vector2.cxx</p>
+
+
+
+<div class="separator"><a name="IsEmpty"></a></div>
+
+
+
+<h3>IsEmpty</h3>
+
+<h4>Syntax :</h4>
+ <pre class="syntax-box">
+  bool IsEmpty()
+</pre>
+
+<p>This method returns true if all the inner vectors are empty. </p> 
+
+<h4> Example : </h4>
+\precode
+// declaration of a vector with 3 inner vectors
+Vector2<double> U(3);
+// filling one inner vector
+U(1).Reallocate(5);
+// IsEmpty should return false
+cout << "U empty ? " << U.IsEmpty() << endl;
+
+U.Clear()
+// IsEmpty should return true now
+cout << "U empty ? " << U.IsEmpty() << endl;
+
+\endprecode
+
+
+<h4>Related topics : </h4>
+<p><a href="#Reallocate">Reallocate</a><br/>
+<a href="#Clear">Clear</a></p>
+
+
+<h4>Location :</h4>
+<p> Class Vector2<br/>
+Vector2.hxx Vector2.cxx</p>
+
+
+
+<div class="separator"><a name="GetLength"></a></div>
+
+
+
+<h3>GetLength, GetSize</h3>
+
+<h4>Syntax :</h4>
+ <pre class="syntax-box">
+  int GetLength()
+  int GetSize()
+  int GetLength(int i)
+  int GetSize(int i)
+</pre>
+
+<p>This method returns the number of inner vectors if no argument is provided, and the size of the inner vector i if i is given as argument. </p> 
+
+<h4> Example : </h4>
+\precode
+// declaration of a vector with 3 inner vectors
+Vector2<double> U(3);
+// U.GetSize() should return 3
+cout << "Number of inner vectors " << U.GetSize() << endl;
+
+U(0).Reallocate(2);
+U(1).Reallocate(4);
+U(2).Reallocate(6);
+
+// size of inner vector 2 ?
+cout << "Size of third inner vector " << U.GetSize(2) << endl;
+
+\endprecode
+
+
+<h4>Related topics : </h4>
+<p><a href="#GetShape">GetShape</a><br/>
+<a href="#GetNelement">GetNelement</a></p>
+
+
+<h4>Location :</h4>
+<p> Class Vector2<br/>
+Vector2.hxx Vector2.cxx</p>
+
+
+
+<div class="separator"><a name="GetNelement"></a></div>
+
+
+
+<h3>GetNelement</h3>
+
+<h4>Syntax :</h4>
+ <pre class="syntax-box">
+  int GetNelement()
+  int GetNelement(int beg, int end)
+</pre>
+
+<p>This method returns the number of elements stored in all the object, that is the sum of the sizes of inner vectors. </p> 
+
+<h4> Example : </h4>
+\precode
+Vector2<double> V;
+V.Reallocate(5); // 5 inner vectors
+V.Reallocate(0, 4); // first inner vector contains 4 elements
+V.Reallocate(1, 5); // second inner vector contains 5 elements
+V.Reallocate(2, 3); // third inner vector contains 3 elements
+V.Reallocate(3, 7); // fourth inner vector contains 7 elements
+V.Reallocate(4, 6); // fifth inner vector contains 6 elements
+// V.GetNelement() should return 3+4+5+7+6 = 25 
+cout << "Number of doubles stored in V " << U.GetNelement() << endl;
+
+// if you wish to know the number of elements for a subset of inner vectors :
+int beg = 1; int end = 4;
+cout << "Number of inner vectors from second inner vector until fourth inner vector " << V.GetNelement(beg, end) << endl;
+\endprecode
+
+
+<h4>Related topics : </h4>
+<p><a href="#GetShape">GetShape</a><br/>
+<a href="#GetLength">GetSize</a></p>
+
+
+<h4>Location :</h4>
+<p> Class Vector2<br/>
+Vector2.hxx Vector2.cxx</p>
+
+
+
+<div class="separator"><a name="GetShape"></a></div>
+
+
+
+<h3>GetShape</h3>
+
+<h4>Syntax :</h4>
+ <pre class="syntax-box">
+  Vector<int> GetShape()
+  void GetShape(Vector<int>& );
+</pre>
+
+<p>This method returns the shape of the vector, i.e. the size of each inner vector. </p> 
+
+<h4> Example : </h4>
+\precode
+Vector2<double> V;
+V.Reallocate(5); // 5 inner vectors
+V.Reallocate(0, 4); // first inner vector contains 4 elements
+V.Reallocate(1, 5); // second inner vector contains 5 elements
+V.Reallocate(2, 3); // third inner vector contains 3 elements
+V.Reallocate(3, 7); // fourth inner vector contains 7 elements
+V.Reallocate(4, 6); // fifth inner vector contains 6 elements
+
+// retrieving the size of all inner vectors
+Vector<int> shape
+V.GetShape(shape);
+// shape should contain [4, 5, 3, 7, 6]
+\endprecode
+
+
+<h4>Related topics : </h4>
+<p><a href="#Reallocate">Reallocate</a><br/>
+<a href="#GetLength">GetSize</a></p>
+
+
+<h4>Location :</h4>
+<p> Class Vector2<br/>
+Vector2.hxx Vector2.cxx</p>
+
+
+<div class="separator"><a name="Reallocate"></a></div>
+
+
+
+<h3>Reallocate</h3>
+
+<h4>Syntax :</h4>
+ <pre class="syntax-box">
+  void Reallocate(int n)
+  void Reallocate(int i, int n)
+  void Reallocate(const Vector<int>& shape)
+</pre>
+
+<p>This method sets the number of inner vectors or the size of each inner vector. </p> 
+
+<h4> Example : </h4>
+\precode
+Vector2<double> V;
+V.Reallocate(5); // 5 inner vectors
+V.Reallocate(0, 4); // first inner vector contains 4 elements
+V.Reallocate(1, 5); // second inner vector contains 5 elements
+V.Reallocate(2, 3); // third inner vector contains 3 elements
+V.Reallocate(3, 7); // fourth inner vector contains 7 elements
+V.Reallocate(4, 6); // fifth inner vector contains 6 elements
+
+// another way to do that is to specify shape
+Vector<int> shape;
+shape.Reallocate(5);
+shape(0) = 4; 
+shape(1) = 5;
+shape(2) = 3;
+shape(3) = 7;
+shape(4) = 6;
+V.Clear(); V.Reallocate(shape);
+\endprecode
+
+
+<h4>Related topics : </h4>
+<p><a href="#GetShape">GetShape</a><br/>
+<a href="#GetLength">GetSize</a></p>
+
+
+<h4>Location :</h4>
+<p> Class Vector2<br/>
+Vector2.hxx Vector2.cxx</p>
+
+
+
+<div class="separator"><a name="Select"></a></div>
+
+
+
+<h3>Select</h3>
+
+<h4>Syntax :</h4>
+ <pre class="syntax-box">
+  void Select(int beg, int end);
+</pre>
+
+<p>This method keeps a subset of inner vectors, while removing the other ones. </p> 
+
+<h4> Example : </h4>
+\precode
+Vector2<double> V;
+V.Reallocate(5); // 5 inner vectors
+V.Reallocate(0, 4); // first inner vector contains 4 elements
+V.Reallocate(1, 5); // second inner vector contains 5 elements
+V.Reallocate(2, 3); // third inner vector contains 3 elements
+V.Reallocate(3, 7); // fourth inner vector contains 7 elements
+V.Reallocate(4, 6); // fifth inner vector contains 6 elements
+
+// if you want to keep only second, third and fourth inner vector
+V.Select(1, 4);
+// now the second inner vector has become the first inner vector
+
+\endprecode
+
+
+<h4>Related topics : </h4>
+<p><a href="#Reallocate">Reallocate</a><br/>
+<a href="#GetLength">GetSize</a></p>
+
+
+<h4>Location :</h4>
+<p> Class Vector2<br/>
+Vector2.hxx Vector2.cxx</p>
+
+
+
+<div class="separator"><a name="Flatten"></a></div>
+
+
+
+<h3>Flatten</h3>
+
+<h4>Syntax :</h4>
+ <pre class="syntax-box">
+  Vector<T> Flatten();
+  void Flatten(Vector<T>& data);
+  void Flatten(int beg, int end, Vector<T>& data);
+</pre>
+
+<p>This method puts all the elements contained in the structure into a simple vector. You can also
+ flatten only a subset of inner vectors by specifying extremities beg, end. </p> 
+
+<h4> Example : </h4>
+\precode
+Vector2<double> V;
+// structure with two inner vectors 
+V.Reallocate(2);
+// V(0) = (x1, x2, ..., xn)
+V.Reallocate(0, 4);
+// V(1) = (y1, y2, ..., ym)
+V.Reallocate(1, 6);
+
+// then you can obtain a simple vector U = (x1, x2, ..., xn, y1, y2, ..., ym)
+Vector<double> vec;
+V.Flatten(vec);
+
+// if you want to flatten only second, third and fourth inner vector
+V.Flatten(1, 4, vec);
+
+\endprecode
+
+
+<h4>Related topics : </h4>
+<p><a href="#Reallocate">Reallocate</a><br/>
+<a href="#GetLength">GetSize</a></p>
+
+
+<h4>Location :</h4>
+<p> Class Vector2<br/>
+Vector2.hxx Vector2.cxx</p>
+
+
+
+<div class="separator"><a name="PushBack"></a></div>
+
+
+
+<h3>PushBack</h3>
+
+<h4>Syntax :</h4>
+ <pre class="syntax-box">
+  void PushBack(int i, const T& x)
+  void PushBack(const Vector<T>& x)
+  void PushBack(const Vector<Vector<T> >& x)
+  void PushBack(const Vector2<T>& x)
+</pre>
+
+<p>This method can be used to insert an element at the end of an inner vector, or append an inner vector at the end, or several inner vectors. </p> 
+
+<h4> Example : </h4>
+\precode
+Vector2<double> V;
+// structure with two inner vectors 
+V.Reallocate(2);
+V.Reallocate(0, 3);
+V(0, 0) = 2.2; V(0, 1) = 1.0; V(0, 2) = -3.5;
+V.Reallocate(1, 2);
+V(1, 0) = 0.8; V(1, 1) = 2.4;
+
+// then you can append an element at the end of first inner vector, for instance :
+V.PushBack(0, 2.431);
+
+// add a third inner vector
+Vector<double> vec(4);
+vec.Fill();
+V.PushBack(vec);
+
+// and add fourth and fifth inner vectors
+Vector<Vector<double>, VectFull, NewAlloc<Vector<double> > > U(2);
+U(0).Reallocate(4);
+U(1).Reallocate(7);
+V.PushBack(U);
+
+// or use Vector2 to append several inner vectors
+Vector2<double> Uc(2);
+Uc.Reallocate(0, 4);
+Uc.Reallocate(1, 7);
+V.PushBack(Uc);
+
+\endprecode
+
+
+<h4>Related topics : </h4>
+<p><a href="#Reallocate">Reallocate</a><br/>
+<a href="#GetLength">GetSize</a></p>
+
+
+<h4>Location :</h4>
+<p> Class Vector2<br/>
+Vector2.hxx Vector2.cxx</p>
+
+
+
+<div class="separator"><a name="Clear"></a></div>
+
+
+
+<h3>Clear</h3>
+
+<h4>Syntax :</h4>
+ <pre class="syntax-box">
+  void Clear()
+  void Clear(int i);
+</pre>
+
+<p>This method clears a single inner vector or all the structure. </p> 
+
+<h4> Example : </h4>
+\precode
+Vector2<double> V;
+// structure with two inner vectors 
+V.Reallocate(2);
+V.Reallocate(0, 3);
+V(0, 0) = 2.2; V(0, 1) = 1.0; V(0, 2) = -3.5;
+V.Reallocate(1, 2);
+V(1, 0) = 0.8; V(1, 1) = 2.4;
+
+// you can clear first inner vector
+V.Clear(0);
+
+// and all the structure
+V.Clear();
+
+\endprecode
+
+
+<h4>Related topics : </h4>
+<p><a href="#Reallocate">Reallocate</a><br/>
+<a href="#GetLength">GetSize</a></p>
+
+
+<h4>Location :</h4>
+<p> Class Vector2<br/>
+Vector2.hxx Vector2.cxx</p>
+
+
+
+<div class="separator"><a name="Fill"></a></div>
+
+
+
+<h3>Fill</h3>
+
+<h4>Syntax :</h4>
+ <pre class="syntax-box">
+  void Fill(const T& x);
+</pre>
+
+<p>This method sets all the elements to the same value </p> 
+
+<h4> Example : </h4>
+\precode
+Vector2<double> V;
+// structure with two inner vectors 
+V.Reallocate(2);
+V.Reallocate(0, 3);
+V.Reallocate(1, 2);
+
+// if you want to initialize all the elements to 0 :
+V.Fill(0.0);
+
+\endprecode
+
+
+<h4>Related topics : </h4>
+<p><a href="#Reallocate">Reallocate</a><br/>
+<a href="#GetLength">GetSize</a></p>
+
+
+<h4>Location :</h4>
+<p> Class Vector2<br/>
+Vector2.hxx Vector2.cxx</p>
+
+
+
+<div class="separator"><a name="GetVector"></a></div>
+
+
+
+<h3>GetVector</h3>
+
+<h4>Syntax :</h4>
+ <pre class="syntax-box">
+  Vector<Vector<T> >& GetVector();
+  Vector<T>& GetVector(int i);
+</pre>
+
+<p>This method returns the vector of vectors of the structure, or a single inner vector. </p> 
+
+<h4> Example : </h4>
+\precode
+Vector2<double> V;
+// structure with two inner vectors 
+V.Reallocate(2);
+V.Reallocate(0, 3);
+V.Reallocate(1, 2);
+
+// if you wish, you can retrieve the vector of vectors
+Vector<Vector<double>, VectFull, NewAlloc<Vector<double> > >& vec = V.GetVector();
+
+// or a single inner vector
+Vector<double>& inn = V.GetVector(1);
+
+\endprecode
+
+
+<h4>Related topics : </h4>
+<p><a href="#Reallocate">Reallocate</a><br/>
+<a href="#operator">operator()</a></p>
+
+
+<h4>Location :</h4>
+<p> Class Vector2<br/>
+Vector2.hxx Vector2.cxx</p>
+
+
+
+<div class="separator"><a name="Copy"></a></div>
+
+
+
+<h3>GetVector</h3>
+
+<h4>Syntax :</h4>
+ <pre class="syntax-box">
+  void Copy(const Vector2<T>& U)
+  void Copy();
+</pre>
+
+<p>This method copies another vector of vectors. </p> 
+
+<h4> Example : </h4>
+\precode
+Vector2<double> V, W;
+// structure with two inner vectors 
+V.Reallocate(2);
+V.Reallocate(0, 3);
+V.Reallocate(1, 2);
+
+// you can copy contents of V in W
+W.Copy(V);
+
+// or create a copy of V on the fly
+W = V.Copy();
+\endprecode
+
+
+<h4>Related topics : </h4>
+<p><a href="#Reallocate">Reallocate</a><br/>
+<a href="#operator">operator =</a></p>
+
+
+<h4>Location :</h4>
+<p> Class Vector2<br/>
+Vector2.hxx Vector2.cxx</p>
+
+
+
+<div class="separator"><a name="HasSameShape"></a></div>
+
+
+
+<h3>HasSameShape</h3>
+
+<h4>Syntax :</h4>
+ <pre class="syntax-box">
+  bool HasSameShape(const Vector2<T>& )
+</pre>
+
+<p>This method returns if the two structures have the same shape, i.e. all inner vectors have the same size. </p> 
+
+<h4> Example : </h4>
+\precode
+Vector2<double> V, W;
+// structure with two inner vectors 
+V.Reallocate(2);
+V.Reallocate(0, 3);
+V.Reallocate(1, 2);
+
+// W with 3 inner vectors
+W.Reallocate(3);
+W.Reallocate(0, 3);
+W.Reallocate(1, 2);
+W.Reallocate(1, 4);
+// V.HasSameShape(W) should return false
+
+// X with 2 inner vectors
+Vector2<double> X(2);
+X.Reallocate(0, 3);
+X.Reallocate(1, 4);
+// V.HasSameShape(X) should return false
+
+\endprecode
+
+
+<h4>Related topics : </h4>
+<p><a href="#GetLength">GetSize</a><br/>
+<a href="#GetShape">GetShape</a></p>
+
+
+<h4>Location :</h4>
+<p> Class Vector2<br/>
+Vector2.hxx Vector2.cxx</p>
+
+
+
+<div class="separator"><a name="Print"></a></div>
+
+
+
+<h3>Print</h3>
+
+<h4>Syntax :</h4>
+ <pre class="syntax-box">
+  void Print()
+</pre>
+
+<p>This method displays the structure </p> 
+
+<h4> Example : </h4>
+\precode
+Vector2<double> V;
+// structure with two inner vectors 
+V.Reallocate(2);
+V.Reallocate(0, 3);
+V.Reallocate(1, 2);
+
+V.Print();
+
+\endprecode
+
+
+<h4>Related topics : </h4>
+<p><a href="#Reallocate">Reallocate</a><br/>
+<a href="#operator">operator =</a></p>
+
+
+<h4>Location :</h4>
+<p> Class Vector2<br/>
+Vector2.hxx Vector2.cxx</p>
+
+
+
+<div class="separator"><a name="Write"></a></div>
+
+
+
+<h3>Write</h3>
+
+<h4>Syntax :</h4>
+ <pre class="syntax-box">
+  void Write(string file_name, with_size = true);
+  void Write(ostream& output_stream, with_size = true);
+</pre>
+
+<p>This method writes the structure in a file or in an output stream. The second argument is optional, by default the size of the vector is written at the beginning of the stream. </p> 
+
+<h4> Example : </h4>
+\precode
+Vector2<double> V;
+// structure with two inner vectors 
+V.Reallocate(2);
+V.Reallocate(0, 3);
+V.Reallocate(1, 2);
+
+// writes V in a file
+V.Write("v.dat");
+
+// or using an output stream
+ofstream file_out("v2.dat");
+V.Write(file_out);
+file_out.close();
+
+\endprecode
+
+
+<h4>Related topics : </h4>
+<p><a href="#Reallocate">Reallocate</a><br/>
+<a href="#operator">operator =</a></p>
+
+
+<h4>Location :</h4>
+<p> Class Vector2<br/>
+Vector2.hxx Vector2.cxx</p>
+
+
+
+<div class="separator"><a name="Read"></a></div>
+
+
+
+<h3>Read</h3>
+
+<h4>Syntax :</h4>
+ <pre class="syntax-box">
+  void Read(string file_name, with_size = true);
+  void Read(istream& output_stream, with_size = true);
+</pre>
+
+<p>This method reads the structure in a file or in an input stream. The second argument is optional, by default the size of the vector is read at the beginning of the stream. </p> 
+
+<h4> Example : </h4>
+\precode
+Vector2<double> V;
+
+// reads V in a file
+V.Read("v.dat");
+
+// or using an input stream
+ifstream file_in("v2.dat");
+V.Read(file_in);
+file_in.close();
+
+\endprecode
+
+
+<h4>Related topics : </h4>
+<p><a href="#Reallocate">Reallocate</a><br/>
+<a href="#operator">operator =</a></p>
+
+
+<h4>Location :</h4>
+<p> Class Vector2<br/>
+Vector2.hxx Vector2.cxx</p>
+
+*/

@@ -1,0 +1,336 @@
+# put YES if you want to use Blas and Lapack, NO other
+USE_BLAS := YES
+# put YES to compile in optimize mode, NO to compile in debug mode
+# FAST for a fast compilation (a library is generated), TEST for fast compilation in debug mode
+OPTIMIZATION := FAST
+STATIC_COMPILATION := YES
+# use of direct solver Mumps
+USE_MUMPS := YES
+# use of direct solver Pardiso (included with Mkl)
+USE_PARDISO := NO
+# use of direct solver Pastix
+USE_PASTIX := NO
+# use of arpack
+USE_ARPACK := YES
+# using feast ?
+USE_FEAST := NO
+# use of slepc
+USE_SLEPC := NO
+# use of anasazi
+USE_ANASAZI := NO
+# use of OpenMP ?
+USE_OPENMP := YES
+# use of MPI
+USE_MPI := YES
+# use of MKL
+USE_MKL := NO
+# alternative direct solvers
+USE_UMFPACK := NO
+USE_SUPERLU := NO
+USE_CHOLMOD := YES
+USE_WSMP := NO
+
+# use of verbosity
+USE_VERBOSE := YES
+
+FLAGS := -Wall -Wextra -Wno-deprecated -Wno-strict-overflow -fno-strict-overflow -Wno-unused-parameter -Wno-unknown-pragmas -ftemplate-depth-5000 -Woverloaded-virtual
+
+# always compiling with openmp actually...
+# USE_OPENMP is used to distinguish SuperLU versions
+FLAGS := -fopenmp $(FLAGS)
+
+# directory where Seldon is
+CHESELDON := ./
+
+# default file to compile
+LSTBIN = test/program/simple_test.cpp
+
+# default executable file
+BIN = test/test.x
+
+# directory where external libraries are installed
+EXTERNAL := /home/durufle/Solve
+
+# directory where Arpack is installed
+CHE_ARPACK := $(EXTERNAL)/Parpack
+
+# directory where Mumps is installed
+CHEMUMPS_SEQ := $(EXTERNAL)/MUMPS_5.2.1_SEQ
+CHEMUMPS_PAR := $(EXTERNAL)/MUMPS_5.2.1
+
+# directory where Scotch is installed
+CHESCOTCH := $(EXTERNAL)/scotch_6.0.4
+
+# directory where Metis is installed (metis is mandatory)
+CHEMETIS := $(EXTERNAL)/metis-5.1.0
+
+# directory where ParMetis is installed
+CHE_PARMETIS := $(EXTERNAL)/parmetis-4.0.3
+
+# directory where Pastix is installed
+CHEPASTIX := $(EXTERNAL)/pastix_5.2.3/
+
+# directory where Scalapack is installed
+CHE_SCALAPACK := $(EXTERNAL)/scalapack-2.0.2
+
+# directory where Blacs is installed
+CHE_BLACS := $(EXTERNAL)/BLACS
+
+# directory for alternative direct solvers
+CHE_SUPERLU := $(EXTERNAL)/SuperLU_5.0
+CHE_SUPERLU_MT := $(EXTERNAL)/SuperLU_MT_3.0
+CHE_SUPERLU_DIST := $(EXTERNAL)/SuperLU_DIST_4.1
+CHE_SUITE_SPARSE := $(EXTERNAL)/SuiteSparse
+CHE_WSMP := $(EXTERNAL)/wsmp/wsmp-Linux64-GNU/lib
+
+# for Trilinos (Anasazi)
+CHE_TRILI := /home/durufle/trilinos-11.4.3-Source/build/
+
+# for Feast
+CHE_FEAST := /home/durufle/Solve/Feast3/
+
+# directories where files .h and . hxx are sought
+INCLUDE := -I.
+
+# using scotch ?
+ifeq ($(USE_PASTIX),YES)
+USE_SCOTCH := YES
+endif
+
+ifeq ($(USE_MPI),YES)
+ifeq ($(USE_MUMPS),YES)
+USE_SCOTCH := YES
+endif
+endif
+
+# using metis
+ifeq ($(USE_MUMPS),YES)
+USE_METIS := YES
+endif
+
+ifeq ($(USE_CHOLMOD),YES)
+USE_METIS := YES
+endif
+
+ifeq ($(USE_UMFPACK),YES)
+USE_METIS := YES
+endif
+
+# using ParMetis ?
+USE_PARMETIS := NO
+ifeq ($(USE_MPI),YES)
+
+ifeq ($(USE_MUMPS),YES)
+USE_PARMETIS := YES
+endif
+
+ifeq ($(USE_SUPERLU),YES)
+USE_PARMETIS := YES
+endif
+
+endif
+
+# using Cholmod ?
+ifeq ($(USE_UMFPACK),YES)
+# Cholmod already included in UmfPack
+USE_CHOLMOD := NO
+endif
+
+
+# used compilers
+ifeq ($(USE_MPI),YES)
+  CC = mpicxx
+  FCC = mpif90
+  INCLUDE:= $(INCLUDE)
+  # -lmpi_f77 instead of -lmpi_mpifh (depending on the MPI compiler)
+  LIB := -lgfortran -lmpi_mpifh
+  FLAGS := $(FLAGS) -DSELDON_WITH_MPI
+else
+  CC = g++
+  FCC = gfortran
+  INCLUDE:= $(INCLUDE)
+  LIB := -lgfortran
+endif
+
+# etime for Arpack
+LIB := lib/etime.o $(LIB)
+
+# if Blas and Lapack are needed
+ifeq ($(USE_BLAS),YES)
+  # user-compiled Blas/Lapack
+  LIB := $(EXTERNAL)/lapack-3.5.0/liblapack.a $(EXTERNAL)/CBLAS/libcblas.a $(EXTERNAL)/BLAS-3.5.0/libblas.a $(LIB) 
+
+  # MKL routines
+#  LIB := $(LIB) -L/opt/intel/composer_xe_2013_sp1.2.144/mkl/lib/ia32 -lmkl_lapack95 -lmkl_gf -lmkl_gnu_thread -lmkl_core /home/durufle/Solve/Cblas/libcblas_mkl.a -lgfortran
+  #LIB := $(LIB) -L/opt/intel/composer_xe_2013_sp1.2.144/mkl/lib/ia32 -lmkl_lapack95 -lmkl_gf -lmkl_gnu_thread -lmkl_core -lgfortran
+
+  ifeq ($(USE_MKL),YES)
+    FLAGS := $(FLAGS) -DSELDON_WITH_MKL -DSELDON_WITH_FEAST
+    INCLUDE := $(INCLUDE) -I/opt/intel/composer_xe_2013_sp1.2.144/mkl/include/
+  endif
+
+  FLAGS := $(FLAGS) -DSELDON_WITH_CBLAS -DSELDON_WITH_LAPACK
+endif
+
+# if arparck is needed
+ifeq ($(USE_ARPACK),YES)
+   FLAGS := $(FLAGS) -DSELDON_WITH_ARPACK
+   ifeq ($(USE_MPI),YES)
+      LIB := -L$(CHE_ARPACK) -lparpack -larpack $(LIB)
+   else
+      LIB := -L$(CHE_ARPACK) -larpack $(LIB)
+   endif
+endif
+
+# if feast is needed
+ifeq ($(USE_FEAST),YES)
+  FLAGS := $(FLAGS) -DSELDON_WITH_FEAST
+  INCLUDE := $(INCLUDE) -I$(CHE_FEAST)/include
+  LIB := -L$(CHE_FEAST)/lib/linux -lfeast $(LIB)
+endif
+
+# if Anasazi is needed
+ifeq ($(USE_ANASAZI),YES)
+   FLAGS := $(FLAGS) -DSELDON_WITH_ANASAZI
+   INCLUDE := $(INCLUDE) -I$(CHE_TRILI)/include
+   LIB := -L$(CHE_TRILI)/lib -lteuchosremainder -lteuchosparameterlist -lteuchosnumerics -lteuchoscomm -lteuchoscore $(LIB)
+endif
+
+# if Slepc is needed
+ifeq ($(USE_SLEPC),YES)
+   FLAGS := $(FLAGS) -DSELDON_WITH_SLEPC -DSELDON_WITH_SLEPC_PEP
+   INCLUDE := $(INCLUDE) -I$(SLEPC_DIR)/$(PETSC_ARCH)/include -I$(SLEPC_DIR)/include -I$(PETSC_DIR)/$(PETSC_ARCH)/include -I$(PETSC_DIR)/include
+   LIB := -L$(SLEPC_DIR)/$(PETSC_ARCH)/lib -lslepc -L$(PETSC_DIR)/$(PETSC_ARCH)/lib -lpetsc $(LIB)
+endif
+
+# if Scotch is needed
+ifeq ($(USE_SCOTCH),YES)
+  INCLUDE := -I$(CHESCOTCH)/include $(INCLUDE)
+  LIB := -L$(CHESCOTCH)/lib -lptesmumps -lesmumps -lptscotch -lptscotcherr -lptscotchparmetis -lscotch -lscotcherr $(LIB) 
+  FLAGS := $(FLAGS) -DMONTJOIE_WITH_SCOTCH
+endif
+
+# if Metis is needed
+ifeq ($(USE_METIS),YES)
+  LIB := -L$(CHEMETIS) -lmetis $(LIB)
+endif
+
+# if ParMetis is needed
+ifeq ($(USE_PARMETIS),YES)
+  LIB := -L$(CHE_PARMETIS) -lparmetis $(LIB)
+endif
+
+# if Cholmod is needed
+ifeq ($(USE_CHOLMOD),YES)
+  LIB := -L$(CHE_SUITE_SPARSE)/CHOLMOD/Lib -lcholmod -L$(CHE_SUITE_SPARSE)/AMD/Lib -lamd -L$(CHE_SUITE_SPARSE)/COLAMD/Lib -lcolamd \
+          -L$(CHE_SUITE_SPARSE)/CAMD/Lib -lcamd -L$(CHE_SUITE_SPARSE)/CCOLAMD/Lib -lccolamd -L$(CHE_SUITE_SPARSE)/SuiteSparse_config -lsuitesparseconfig $(LIB)
+  INCLUDE := -I$(CHE_SUITE_SPARSE)/CHOLMOD/Include -I$(CHE_SUITE_SPARSE)/SuiteSparse_config $(INCLUDE)
+  FLAGS := $(FLAGS) -DSELDON_WITH_CHOLMOD
+endif
+
+# if UmfPack with Cholmod is needed
+ifeq ($(USE_UMFPACK),YES)
+  LIB_COLAMD :=
+  INC_COLAMD := -I$(CHE_SUITE_SPARSE)/COLAMD/Include
+  ifeq ($(USE_SUPERLU),NO)
+    LIB_COLAMD := -L$(CHE_SUITE_SPARSE)/COLAMD/Lib -lcolamd 
+  endif
+  ifeq ($(USE_MPI),YES)
+    LIB_COLAMD := -L$(CHE_SUITE_SPARSE)/COLAMD/Lib -lcolamd 
+  endif
+  LIB := -L$(CHE_SUITE_SPARSE)/UMFPACK/Lib -lumfpack -L$(CHE_SUITE_SPARSE)/CHOLMOD/Lib -lcholmod -L$(CHE_SUITE_SPARSE)/AMD/Lib -lamd \
+        -L$(CHE_SUITE_SPARSE)/CAMD/Lib -lcamd $(LIB_COLAMD) \
+	-L$(CHE_SUITE_SPARSE)/CCOLAMD/Lib -lccolamd -L$(CHE_SUITE_SPARSE)/SuiteSparse_config -lsuitesparseconfig $(LIB)
+  INCLUDE := -I$(CHE_SUITE_SPARSE)/AMD/Include -I$(CHE_SUITE_SPARSE)/CAMD/Include $(INC_COLAMD) \
+             -I$(CHE_SUITE_SPARSE)/CHOLMOD/Include -I$(CHE_SUITE_SPARSE)/UMFPACK/Include -I$(CHE_SUITE_SPARSE)/SuiteSparse_config $(INCLUDE)
+  FLAGS := $(FLAGS) -DSELDON_WITH_UMFPACK -DSELDON_WITH_CHOLMOD
+endif
+
+# if SuperLU is needed
+ifeq ($(USE_SUPERLU),YES)
+  ifeq ($(USE_MPI),YES)
+    LIB := $(CHE_SUPERLU_DIST)/lib/libsuperlu_dist.a $(LIB) 
+    INCLUDE := -I$(CHE_SUPERLU_DIST)/SRC $(INCLUDE)
+    FLAGS := $(FLAGS) -DSELDON_WITH_SUPERLU -DSELDON_WITH_SUPERLU_DIST
+  else
+    ifeq ($(USE_OPENMP),YES)
+      LIB := $(CHE_SUPERLU_MT)/lib/libsuperlu_mt_PTHREAD.a $(LIB) 
+      INCLUDE := -I$(CHE_SUPERLU_MT)/SRC $(INCLUDE)
+      FLAGS := $(FLAGS) -DSELDON_WITH_SUPERLU -DSELDON_WITH_SUPERLU_MT
+    else
+      LIB := $(CHE_SUPERLU)/lib/libsuperlu.a $(LIB) 
+      INCLUDE := -I$(CHE_SUPERLU)/SRC $(INCLUDE)
+      FLAGS := $(FLAGS) -DSELDON_WITH_SUPERLU
+    endif
+  endif
+endif
+
+ifeq ($(USE_WSMP),YES)
+  ifeq ($(USE_MPI),YES)
+    LIB := $(CHE_WSMP)/mvapich2/libpwsmp64.a $(LIB)
+  else
+    LIB := $(CHE_WSMP)/libwsmp64.a $(LIB)
+  endif
+  FLAGS := $(FLAGS) -DSELDON_WITH_WSMP
+endif
+
+# if MUMPS is needed
+ifeq ($(USE_MUMPS),YES)
+  # MUMPS compiled with Gfortran
+  ifeq ($(USE_MPI),YES)
+     INCLUDE := -I$(CHEMUMPS_PAR)/include $(INCLUDE)
+     LIB := -L$(CHEMUMPS_PAR)/lib -ldmumps -lzmumps -lmumps_common -lpord \
+      $(CHE_SCALAPACK)/libscalapack.a $(CHE_BLACS)/libblacs.a $(LIB)
+  else
+    INCLUDE := -I$(CHEMUMPS_SEQ)/include -I$(CHEMUMPS_SEQ)/libseq $(INCLUDE)
+    LIB := -L$(CHEMUMPS_SEQ)/lib -ldmumps -lzmumps -lmumps_common -lpord \
+    -L$(CHEMUMPS_SEQ)/libseq -lmpiseq -L$(HOME)/common/lib $(LIB)
+  endif
+  FLAGS := $(FLAGS) -DSELDON_WITH_MUMPS
+endif
+
+# if PARDISO is needed
+ifeq ($(USE_PARDISO),YES)
+  #LIB := -L$(SOLVE)/Pardiso -lpardiso $(LIB)
+  # We use pardiso included in MKL
+  FLAGS := $(FLAGS) -DSELDON_WITH_PARDISO
+endif
+
+# if Pastix is needed
+ifeq ($(USE_PASTIX),YES)
+  INCLUDE := -I$(CHEPASTIX)/install $(INCLUDE)
+  LIB := -L$(CHEPASTIX)/install -lpastix $(LIB) -lhwloc
+  FLAGS := $(FLAGS) -DSELDON_WITH_PASTIX
+endif
+
+FLAGS_LIB := $(FLAGS) -fPIC
+FLAGS_OBJ := $(FLAGS) -fPIC
+SEPARED_COMPIL := NO
+
+ifeq ($(OPTIMIZATION),NO)
+  # options for debug mode
+  AGRESSIVE_OPTIM = -g
+  FLAGS := $(FLAGS) -DSELDON_DEBUG_LEVEL_4
+else ifeq ($(OPTIMIZATION),FAST)
+  SEPARED_COMPIL := YES
+  FLAGS := $(FLAGS) -DSELDON_WITH_COMPILED_LIBRARY
+  SELD_SUFFIX := _Sopt
+  AGRESSIVE_OPTIM = -O3 -DSELDON_DEBUG_LEVEL_1
+else ifeq ($(OPTIMIZATION),TEST)
+  SEPARED_COMPIL := YES
+  FLAGS := $(FLAGS) -DSELDON_WITH_COMPILED_LIBRARY
+  SELD_SUFFIX := _Sdebug
+  AGRESSIVE_OPTIM = -O0 -DSELDON_DEBUG_LEVEL_4 -g
+else
+  # option for optimization mode
+  AGRESSIVE_OPTIM = -O3 -DSELDON_DEBUG_LEVEL_1
+endif
+
+ifeq ($(SEPARED_COMPIL),YES)
+  LIB_SELDON_STATIC := lib/libseldon$(SELD_SUFFIX).a
+  LIB_SELDON := lib/libseldon$(SELD_SUFFIX).so
+endif
+
+# now lists of all targets
+
+include Makefile.rules.mk

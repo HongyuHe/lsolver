@@ -1,0 +1,537 @@
+/*! \file other_structures.dox
+    \brief Other structures: 3D arrays, Vector2.
+*/
+
+/*!
+\page other_structures Other Structures
+
+<p> %Seldon provides additional structures: </p>
+
+<ul>
+
+  <li> <code>Vector2</code> is a structure that acts like a vector of vectors. The inner vectors can be of any dimension, so that this structure is more flexible than a matrix. </li>
+
+  <li> <code>Vector3</code> is a structure that acts like a vector of vectors of vectors. The inner vectors can be of any dimension, so that this structure is more flexible than an Array3D. </li>
+  
+  <li> <code>Array3D</code> is a three-dimensional array.</li>
+
+  <li> <code>Array4D</code> is a four-dimensional array.</li>
+
+  <li> <code>Array</code> is a multi-dimensional array (up to 9 dimensions).</li>
+
+</ul>
+
+<br/>
+
+<h2> Functions </h2>
+
+<table class="category-table">
+<tr class="category-table-tr-1">
+ <td class="category-table-td"><a href="#conjugate">conjugate</a></td> 
+ <td class="category-table-td">returns the conjugate of a number</td> </tr>
+<tr class="category-table-tr-2">
+ <td class="category-table-td"><a href="#realpart">realpart</a></td> 
+ <td class="category-table-td">returns the real part of a number</td> </tr>
+<tr class="category-table-tr-1">
+ <td class="category-table-td"><a href="#to_str">to_str</a></td> 
+ <td class="category-table-td">converts a number into a string</td> </tr>
+<tr class="category-table-tr-2">
+ <td class="category-table-td"><a href="#to_num">to_num</a></td> 
+ <td class="category-table-td">converts a string into a number</td> </tr>
+<tr class="category-table-tr-1">
+ <td class="category-table-td"><a href="#ClassComplexType">ClassComplexType</a></td> 
+ <td class="category-table-td">retrieves real or complex number from a given type</td> </tr>
+<tr class="category-table-tr-2">
+ <td class="category-table-td"><a href="#SetComplexZero">SetComplexZero</a></td> 
+ <td class="category-table-td">sets a complex number to zero</td> </tr>
+<tr class="category-table-tr-1">
+ <td class="category-table-td"><a href="#SetComplexOne">SetComplexOne</a></td> 
+ <td class="category-table-td">sets a complex number to one</td> </tr>
+<tr class="category-table-tr-2">
+ <td class="category-table-td"><a href="#SetComplexReal">SetComplexReal</a></td> 
+ <td class="category-table-td">sets a complex number to a given value</td> </tr>
+<tr class="category-table-tr-1">
+ <td class="category-table-td"><a href="#ComplexAbs">ComplexAbs</a></td> 
+ <td class="category-table-td">returns the modulus of a number</td> </tr>
+<tr class="category-table-tr-2">
+ <td class="category-table-td"><a href="#absSquare">absSquare</a></td> 
+ <td class="category-table-td">returns the square modulus of a number</td> </tr>
+<tr class="category-table-tr-1">
+ <td class="category-table-td"><a href="#GetExtension">GetExtension</a></td> 
+ <td class="category-table-td">returns the extension (without the point) of a file name</td> </tr>
+<tr class="category-table-tr-2">
+ <td class="category-table-td"><a href="#GetBaseString">GetBaseString</a></td> 
+ <td class="category-table-td">returns the base (without the extension) of a file name</td> </tr>
+ <tr class="category-table-tr-1">
+ <td class="category-table-td"><a href="#InitSeldon">InitSeldon</a></td> 
+ <td class="category-table-td">initializes Seldon (at the beginning of the program)</td> </tr>
+  <tr class="category-table-tr-2">
+ <td class="category-table-td"><a href="#FinalizeSeldon">FinalizeSeldon</a></td> 
+ <td class="category-table-td">initializes Seldon (at the beginning of the program)</td> </tr>
+</table>
+
+
+
+<div class="separator"><a name="conjugate"></a></div>
+
+
+
+<h3>conjugate</h3>
+
+<h4>Syntax : </h4>
+ <pre class="syntax-box">
+  T conjugate(const T& x);
+</pre>
+
+
+<p>This function returns the conjugate of a number x. If x is real, it returns x.
+</p>
+
+
+<h4>Example : </h4>
+\precode
+double z = 0.23;
+// for a real number, z is returned without change
+double x = conjugate(z);
+
+complex<double> z2(0.34, -0.9);
+// for a complex number, the conjugated is returned
+complex<double> y = conjugate(z2);
+\endprecode
+
+<h4>Location :</h4>
+<p>share/Common.cxx</p>
+
+
+
+<div class="separator"><a name="realpart"></a></div>
+
+
+
+<h3>realpart</h3>
+
+<h4>Syntax : </h4>
+ <pre class="syntax-box">
+  T realpart(const T& x);
+  T realpart(const complex<T>& x);
+</pre>
+
+
+<p>This function returns the real part of a number x. If x is already real, it returns x.
+</p>
+
+
+<h4>Example : </h4>
+\precode
+double z = 0.23;
+// for a real number, z is returned without change
+double x = realpart(z);
+
+complex<double> z2(0.34, -0.9);
+// for a complex number, the real part is returned
+x = realpart(z2);
+\endprecode
+
+<h4>Location :</h4>
+<p>share/Common.cxx</p>
+
+
+
+<div class="separator"><a name="to_str"></a></div>
+
+
+
+<h3>to_str</h3>
+
+<h4>Syntax : </h4>
+ <pre class="syntax-box">
+  string to_str(T num);
+</pre>
+
+
+<p>This function converts a number into a string. It is equivalent to the function
+ to_string in C++11.
+</p>
+
+
+<h4>Example : </h4>
+\precode
+double z = 0.23;
+string s = to_str(z);
+\endprecode
+
+<h4>Location :</h4>
+<p>share/Common.cxx</p>
+
+
+
+<div class="separator"><a name="to_num"></a></div>
+
+
+
+<h3>to_num</h3>
+
+<h4>Syntax : </h4>
+ <pre class="syntax-box">
+  to_num(string s, T x);
+  T to_num(string s);
+</pre>
+
+
+<p>This function converts a string into a number.
+</p>
+
+
+<h4>Example : </h4>
+\precode
+// first syntax, the output is given as an argument
+complex<double> z;
+to_num(string("(2.34,0.8)"), z);
+
+// second syntax, the output is the return
+// the type of the number must be specified
+double d = to_num<double>(string("-0.345"));
+\endprecode
+
+<h4>Location :</h4>
+<p>share/Common.cxx</p>
+
+
+
+<div class="separator"><a name="ClassComplexType"></a></div>
+
+
+
+<h3>ClassComplexType</h3>
+
+<h4>Syntax : </h4>
+ <pre class="syntax-box">
+  template<class T>
+  class ClassComplexType
+</pre>
+
+
+<p>This class is useful to retrieve real numbers or complex number from a type T.
+</p>
+
+
+<h4>Example : </h4>
+\precode
+// in a template function
+// where T can be double or complex<double>
+template<class T>
+void my_func(const Vector<T>& x)
+{
+  // if you want to define a real number (i.e. double if T = double or complex<double>)
+  typename ClassComplexType<T>::Treal b_real;
+
+  // if you want to define a complex number (i.e. complex<double> if T = double or complex<double>)
+  typename ClassComplexType<T>::Tcplx b_cplx;
+}
+
+\endprecode
+
+<h4>Location :</h4>
+<p>share/Common.cxx</p>
+
+
+
+<div class="separator"><a name="SetComplexZero"></a></div>
+
+
+
+<h3>SetComplexZero</h3>
+
+<h4>Syntax : </h4>
+ <pre class="syntax-box">
+  void SetComplexZero(T&amp; z);
+</pre>
+
+
+<p>This function is equivalent to z = 0. It has been implemented in order to use mpfr numbers with complex class. 
+</p>
+
+
+<h4>Example : </h4>
+\precode
+// to set z = 0, you can use SetComplexZero
+// this function should handle different types correctly
+complex<double> z;
+SetComplexZero(z);
+
+\endprecode
+
+<h4>Location :</h4>
+<p>share/Common.cxx</p>
+
+
+
+<div class="separator"><a name="SetComplexOne"></a></div>
+
+
+
+<h3>SetComplexOne</h3>
+
+<h4>Syntax : </h4>
+ <pre class="syntax-box">
+  void SetComplexOne(T&amp; z);
+</pre>
+
+
+<p>This function is equivalent to z = 1. It has been implemented in order to use mpfr numbers with complex class. 
+</p>
+
+
+<h4>Example : </h4>
+\precode
+// to set z = 1, you can use SetComplexOne
+// this function should handle different types correctly
+complex<double> z;
+SetComplexOne(z);
+
+\endprecode
+
+<h4>Location :</h4>
+<p>share/Common.cxx</p>
+
+
+
+<div class="separator"><a name="SetComplexReal"></a></div>
+
+
+
+<h3>SetComplexReal</h3>
+
+<h4>Syntax : </h4>
+ <pre class="syntax-box">
+  void SetComplexReal(const T1&amp; x, T2&amp; y);
+</pre>
+
+
+<p>This function is equivalent to y = x. It has been implemented in order to use mpfr numbers with complex class. 
+</p>
+
+
+<h4>Example : </h4>
+\precode
+int n = 10;
+// to set z = n, you can use SetComplexReal
+// this function should handle different types correctly
+complex<double> z;
+SetComplexReal(n, z);
+
+\endprecode
+
+<h4>Location :</h4>
+<p>share/Common.cxx</p>
+
+
+
+<div class="separator"><a name="ComplexAbs"></a></div>
+
+
+
+<h3>ComplexAbs</h3>
+
+<h4>Syntax : </h4>
+ <pre class="syntax-box">
+  T ComplexAbs(const T&amp; z);
+  T ComplexAbs(const complex&lt;T&gt;&amp; z);
+</pre>
+
+
+<p>This function returns the modulus of a complex number z. If the argument z is real, it just returns the square. If Seldon is compiled with Blas and without Lapack, this function does not return the modulus,
+ but the sum of the absolute value ot real part and imaginary part. This is done in order to be compatible with the Blas function to compute the 1-norm.
+</p>
+
+
+<h4>Example : </h4>
+\precode
+complex<double> z;
+// my_modulus = |z|
+double my_modulus = ComplexAbs(z);
+
+// if SELDON_WITH_BLAS is defined and not SELDON_WITH_LAPACK
+// my_modulus should contain |Real(z)| + |Imag(z)|
+\endprecode
+
+<h4>Location :</h4>
+<p>share/Common.cxx</p>
+
+
+
+<div class="separator"><a name="absSquare"></a></div>
+
+
+
+<h3>absSquare</h3>
+
+<h4>Syntax : </h4>
+ <pre class="syntax-box">
+  T absSquare(const T&amp; z);
+  T absSquare(const complex&lt;T&gt;&amp; z);
+</pre>
+
+
+<p>This function returns the modulus square of a complex number z. If the argument z is real, it just returns the square. For a complex number, it is more efficient calling this method than taking the square of abs(z) since it avoids the computation of a square root.
+</p>
+
+
+<h4>Example : </h4>
+\precode
+complex<double> z;
+// my_modulus = |z|^2
+double my_modulus = absSquare(z);
+\endprecode
+
+<h4>Location :</h4>
+<p>share/Common.cxx</p>
+
+
+
+<div class="separator"><a name="GetExtension"></a></div>
+
+
+
+<h3>GetExtension</h3>
+
+<h4>Syntax : </h4>
+ <pre class="syntax-box">
+  string GetExtension(string s);
+</pre>
+
+
+<p>This function returns the extension of the string s. If the string
+  does not contain the character '.', it returns a void string.
+</p>
+
+
+<h4>Example : </h4>
+\precode
+string s = "toto.dat";
+
+// ext should be equal to "dat"
+string ext = GetExtension(s);
+
+\endprecode
+
+<h4>Location :</h4>
+<p>share/Common.cxx</p>
+
+
+
+<div class="separator"><a name="GetBaseString"></a></div>
+
+
+
+<h3>GetBaseString</h3>
+
+<h4>Syntax : </h4>
+ <pre class="syntax-box">
+  string GetBaseString(string s);
+</pre>
+
+
+<p>This function returns the base of the string s. If the string
+  does not contain the character '.', it returns the complete string.
+</p>
+
+
+<h4>Example : </h4>
+\precode
+string s = "toto.dat";
+
+// base should be equal to "toto"
+string ext = GetBaseString(s);
+\endprecode
+
+<h4>Location :</h4>
+<p>share/Common.cxx</p>
+
+
+
+<div class="separator"><a name="InitSeldon"></a></div>
+
+
+
+<h3>InitSeldon</h3>
+
+<h4>Syntax : </h4>
+ <pre class="syntax-box">
+  void InitSeldon(int argc, char** argv);
+</pre>
+
+
+<p>This function initializes Seldon with arguments of the command line. It calls MPI_Init and other initializations are performed. It is advised to start your main with this function.
+</p>
+
+
+<h4>Example : </h4>
+\precode
+#include "SeldonLib.hxx"
+
+using namespace Seldon;
+
+int main(int argc, char** argv)
+{
+  // first function to call : InitSeldon
+  InitSeldon(argc, argv);
+
+  // then you put your own code
+  
+
+  // last function
+  return FinalizeSeldon();
+}
+
+\endprecode
+
+<h4>Location :</h4>
+<p>share/Common.cxx</p>
+
+
+
+<div class="separator"><a name="FinalizeSeldon"></a></div>
+
+
+
+<h3>FinalizeSeldon</h3>
+
+<h4>Syntax : </h4>
+ <pre class="syntax-box">
+  int FinalizeSeldon();
+</pre>
+
+
+<p>This function finalizes a program using Seldon. This function should be called at the end of the program.
+</p>
+
+
+<h4>Example : </h4>
+\precode
+#include "SeldonLib.hxx"
+
+using namespace Seldon;
+
+int main(int argc, char** argv)
+{
+  // first function to call : InitSeldon
+  InitSeldon(argc, argv);
+
+  // then you put your own code
+  
+
+  // last function to call : FinalizeSeldon
+  return FinalizeSeldon();
+}
+
+\endprecode
+
+<h4>Location :</h4>
+<p>share/Common.cxx</p>
+
+
+
+
+
+*/

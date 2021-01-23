@@ -1,0 +1,1218 @@
+/*! \file functions_lapack.dox
+    \brief Lapack Functions.
+*/
+
+/*!
+\page functions_lapack Lapack Functions
+
+<p>Those functions are available mainly for dense matrices. When it is available for sparse matrices, it will be specified and the use detailed.  In the case of dense matrices, Lapack subroutines are called and you will need to define <code>SELDON_WITH_BLAS</code> and <code> SELDON_WITH_LAPACK</code>. </p>
+
+<p>Several classes have been implemented as matrices flags:</p>
+
+<ul>
+
+<li> <b>SeldonTranspose</b> : product with the original matrix, its transpose or its conjugated transpose. </li>
+<li> <b>SeldonSide</b> : left or right eigenvectors for example. </li>
+<li> <b>SeldonConjugate</b> : conjugates or not a system. </li>
+<li> <b>SeldonNorm</b> : informs which norm to use. </li>
+<li> <b>SeldonUplo</b> : solves the upper triangular part of lower triangular part. </li>
+<li> <b>SeldonDiag</b> : solves knowing that the diagonal only contains ones or not. </li>
+</ul>
+
+<p> Below we show an example of use for these flags </p>
+
+\precode
+// if you want to define a function with trans
+// which can be either transpose, no transpose or conjugate transpose
+// you declare trans as SeldonTranspose
+void Mlt(const SeldonTranspose& trans, const Matrix<double>& A, const Vector<double>& x, Vector<double>& y)
+{
+  if (trans.NoTrans())
+    {
+      // for the non transpose case (y = A x)
+    }
+  else if (trans.Trans())
+    {
+      // transpose case (y = A^T x)
+    }
+  else if (trans.ConjTrans())
+    {
+      // transpose conjugate case (y = A^H x)      
+    }
+}
+
+// if you want to avoid an "if" inside your function, you can write three functions:
+void MltFast(const class_SeldonNoTrans& trans, const Matrix<double>& A, const Vector<double>& x, Vector<double>& y)
+{
+   // for the non transpose case (y = A x)
+}
+
+void MltFast(const class_SeldonTrans& trans, const Matrix<double>& A, const Vector<double>& x, Vector<double>& y)
+{
+  // transpose case (y = A^T x)
+}
+
+void MltFast(const class_SeldonConjTrans& trans, const Matrix<double>& A, const Vector<double>& x, Vector<double>& y)
+{
+   // transpose conjugate case (y = A^H x)      
+}
+      
+int main()
+{
+  Matrix<double> A;
+  Vector<double> x, y;
+  
+  // you can call the function Mlt
+  // with SeldonTrans, SeldonNoTrans or SeldonConjTrans (which are instances of class SeldonTranspose)
+  Mlt(SeldonNoTrans, A, x, y); // y = A x
+  Mlt(SeldonTrans, A, x, y); // y = A^T x
+  Mlt(SeldonConjTrans, A, x, y); // y = A^H x
+
+  // MltFast works in the same way (you spare an if with MltFast)
+  MltFast(SeldonNoTrans, A, x, y); // y = A x
+  MltFast(SeldonTrans, A, x, y); // y = A^T x
+  MltFast(SeldonConjTrans, A, x, y); // y = A^H x
+
+  // the following classes work in the same model as SeldonTranspose (see file MatrixFlag.hxx):
+
+  // SeldonTranspose : SeldonNoTrans, SeldonTrans and SeldonConjTrans
+  // SeldonDiag : SeldonNonUnit and SeldonUnit (to inform if the diagonal is unitary or not)
+  // SeldonUplo : SeldonUpper and SeldonLower (to solve the upper or lower part of a matrix)
+  // SeldonNorm : SeldonNormInf and SeldonNorm1
+  // SeldonConjugate : SeldonConj and SeldonUnConj
+  // SeldonSide : SeldonLeft and SeldonRight (multplication on the right or left)
+}
+\endprecode
+ 
+<table class="category-table">
+<tr class="category-table-tr-2">
+ <td class="category-table-td"><a href="#GetLU">GetLU </a></td> 
+ <td class="category-table-td"> performs a LU (or LDL^t) factorization </td>
+ </tr>
+<tr class="category-table-tr-1">
+ <td class="category-table-td"><a href="#GetLU">SolveLU </a></td> 
+ <td class="category-table-td"> solves linear system by using LU factorization</td> </tr>
+<tr class="category-table-tr-1">
+ <td class="category-table-td"><a href="#GetLU">GetAndSolveLU </a></td> 
+ <td class="category-table-td"> factorisation and solution of a linear system </td> </tr>
+<tr class="category-table-tr-2">
+ <td class="category-table-td"><a href="#RefineSolutionLU">RefineSolutionLU</a></td> 
+ <td class="category-table-td"> improves solution computed by SolveLU</td> </tr>
+<tr class="category-table-tr-1">
+ <td class="category-table-td"><a href="#GetCholesky">GetCholesky </a></td>
+ <td class="category-table-td"> performs a Cholesky (A =  LL<sup>T</sup>) factorization for symmetric positive definite matrices </td>
+ </tr>
+<tr class="category-table-tr-2">
+ <td class="category-table-td"><a href="#GetCholesky">SolveCholesky </a></td>
+ <td class="category-table-td"> solves linear system by using Cholesky factorization</td> </tr>
+<tr class="category-table-tr-1">
+ <td class="category-table-td"><a href="#GetCholesky">MltCholesky </a></td>
+ <td class="category-table-td"> performs matrix vector product by using Cholesky factorization</td> </tr>
+<tr class="category-table-tr-2">
+ <td class="category-table-td"><a href="#ReciprocalConditionNumber">ReciprocalConditionNumber </a></td> 
+ <td class="category-table-td"> computes the inverse of matrix
+ condition number</td> </tr>
+<tr class="category-table-tr-1">
+ <td class="category-table-td"><a href="#GetScalingFactors">GetScalingFactors </a></td> 
+ <td class="category-table-td"> computes row and column scalings to
+ equilibrate a matrix</td> </tr>
+<tr class="category-table-tr-2">
+ <td class="category-table-td"><a href="#GetInverse">GetInverse </a></td> 
+ <td class="category-table-td"> computes the matrix inverse </td> </tr>
+<tr class="category-table-tr-1">
+ <td class="category-table-td"><a href="#GetQR">GetQR </a></td> 
+ <td class="category-table-td"> QR factorization of matrix </td> </tr>
+<tr class="category-table-tr-2">
+ <td class="category-table-td"><a href="#GetQR_Pivot">GetQR_Pivot </a></td> 
+ <td class="category-table-td"> QR factorization of matrix with pivoting</td> </tr>
+<tr class="category-table-tr-1">
+ <td class="category-table-td"><a href="#GetLQ">GetLQ </a></td> 
+ <td class="category-table-td"> LQ factorization of matrix </td> </tr>
+<tr class="category-table-tr-2">
+ <td class="category-table-td"><a href="#GetQ_FromQR">GetQ_FromQR </a></td> 
+ <td class="category-table-td"> Forms explicitely Q from QR factorization</td> </tr>
+<tr class="category-table-tr-1">
+ <td class="category-table-td"><a href="#MltQ_FromQR">MltQ_FromQR </a></td> 
+ <td class="category-table-td"> multiplies vector by Q </td> </tr>
+<tr class="category-table-tr-2">
+ <td class="category-table-td"><a href="#GetQ_FromQR">GetQ_FromLQ </a></td> 
+ <td class="category-table-td"> Forms explicitely Q from LQ factorization</td> </tr>
+<tr class="category-table-tr-1">
+ <td class="category-table-td"><a href="#MltQ_FromQR">MltQ_FromLQ </a></td> 
+ <td class="category-table-td"> multiplies vector by Q </td> </tr>
+<tr class="category-table-tr-2">
+ <td class="category-table-td"><a href="#GetQR">SolveQR </a></td> 
+ <td class="category-table-td"> solves least-square problems by using QR factorization</td> </tr>
+<tr class="category-table-tr-1">
+ <td class="category-table-td"><a href="#GetLQ">SolveLQ </a></td> 
+ <td class="category-table-td"> solves least-square problems by using
+ LQ factorization </td> </tr>
+<tr class="category-table-tr-2">
+ <td class="category-table-td"><a href="#GetEigenvalues">GetEigenvalues </a></td> 
+ <td class="category-table-td"> computes eigenvalues</td> </tr>
+<tr class="category-table-tr-1">
+ <td class="category-table-td"><a href="#GetEigenvaluesEigenvectors">GetEigenvaluesEigenvectors </a></td> 
+ <td class="category-table-td"> computes eigenvalues and
+ eigenvectors</td> </tr>
+<tr class="category-table-tr-2">
+ <td class="category-table-td"><a href="#GetSVD">GetSVD </a></td> 
+ <td class="category-table-td"> performs singular value decomposition (SVD) </td> </tr>
+<tr class="category-table-tr-1">
+ <td class="category-table-td"><a href="#GetHessenberg">GetHessenberg </a></td> 
+ <td class="category-table-td"> reduces a dense matrix to its Hessenberg form </td> </tr>
+<tr class="category-table-tr-2">
+ <td class="category-table-td"><a href="#GetQZ">GetQZ </a></td> 
+ <td class="category-table-td"> reduces matrices A and B to quasi-triangular forms </td> </tr>
+<tr class="category-table-tr-1">
+ <td class="category-table-td"><a href="#SolveHessenberg">SolveHessenberg </a></td> 
+ <td class="category-table-td"> solution of H X = Y with H an Hessenberg matrix </td> </tr>
+<tr class="category-table-tr-2">
+ <td class="category-table-td"><a href="#SolveHessenbergTwo">SolveHessenbergTwo </a></td> 
+ <td class="category-table-td"> solution of H X = Y with H a matrix with two sub-diagonals non-null </td> </tr>
+<tr class="category-table-tr-1">
+ <td class="category-table-td"><a href="#SolveSylvester">SolveSylvester </a></td> 
+ <td class="category-table-td"> solution of Sylvester equation A X B* + C X D* = E</td> </tr>
+</table>
+
+
+
+<div class="separator"><a name="GetLU"></a></div>
+
+
+
+<h3>GetLU, SolveLU</h3>
+
+
+<h4>Syntax :</h4>
+ <pre class="syntax-box">
+  void GetLU(Matrix&amp;, Vector&lt;int&gt;&amp; pivot);
+  void SolveLU(const Matrix&amp;, const Vector&lt;int&gt;&amp; pivot, Vector&amp;);
+
+  void GetLU(Matrix&amp;, MatrixMumps&amp;);
+  void SolveLU(MatrixMumps&amp;, Vector&amp;);
+
+  void GetLU(Matrix&amp;, MatrixPastix&amp;);
+  void SolveLU(MatrixPastix&amp;, Vector&amp;);
+
+  void GetLU(Matrix&amp;, MatrixSuperLU&amp;);
+  void SolveLU(MatrixSuperLU&amp;, Vector&amp;);
+
+  void GetLU(Matrix&amp;, MatrixUmfPack&amp;);
+  void SolveLU(MatrixUmfPack&amp;, Vector&amp;);
+
+  void GetAndSolveLU(Matrix&amp;, Vector&amp;);
+</pre>
+
+
+<p><code>GetLU</code> performs a LU factorization or LDL<sup>T</sup> factorization (for symmetric matrices) of the provided matrix. This function is implemented both for dense and sparse matrices. In the case of sparse matrices, %Seldon is interfaced with external librairies, i.e. <a href="http://mumps.enseeiht.fr/">MUMPS</a>, <a href="http://www.cise.ufl.edu/research/sparse/umfpack/">UMFPACK</a>, <a href="http://crd.lbl.gov/~xiaoye/SuperLU/">SUPERLU</a> and <a href="http://pastix.gforge.inria.fr/">Pastix</a>. You need to define SELDON_WITH_MUMPS, SELDON_WITH_SUPERLU, SELDON_WITH_PASTIX and/or SELDON_WITH_UMFPACK if you want to factorize a sparse matrix. After a call to GetLU, you can call SolveLU to solve a linear system by using the computed factorization. A class enabling the choice between the different direct solvers has also been implemented. Its use is detailed in the section devoted to direct solvers. If you want to perform a factorisation followed by a solution, you can use the function <b>GetAndSolveLU</b>, but with this function the factorisation is cleared at the end, therefore not available if you need to compute other solutions. </p>
+
+
+<h4> Example : </h4>
+\precode
+// lapack for dense matrices
+#define SELDON_WITH_LAPACK
+
+// external libraries for sparse matrices
+#define SELDON_WITH_MUMPS
+#define SELDON_WITH_SUPERLU
+#define SELDON_WITH_UMFPACK
+#define SELDON_WITH_PASTIX
+
+#include "Seldon.hxx"
+#include "SeldonSolver.hxx"
+
+using namespace Seldon;
+
+int main()
+{
+  // dense matrices
+  Matrix<double> A(3, 3);
+  Vector<int> pivot;
+
+  // factorization
+  GetLU(A, pivot);
+
+  // now you can solve the linear system A x = b
+  Vector<double> X(3), B(3);
+  B.Fill();
+  X = B;
+  SolveLU(A, pivot, X);
+  
+  // sparse matrices, use of Mumps for example
+  MatrixMumps<double> mat_lu;
+  Matrix<double, General, ArrayRowSparse> Asp(n, n);
+  // you add all non-zero entries to matrix Asp
+  // then you call GetLU to factorize the matrix
+  GetLU(Asp, mat_lu);
+  // Asp is empty after GetLU
+  // if you want to keep it, GetLU(Asp, mat_lu, true)
+  // you can solve Asp x = b 
+  X = B;
+  SolveLU(mat_lu, X);
+
+  // If you have a single right-hand side
+  // you can factorize and solve in a single step
+  // if Seldon is interfaced with one direct solver (Mumps, Pastix, etc)
+  // this solver will be used
+  Asp.Reallocate(n, n); //...
+  X = B;
+  GetAndSolveLU(Asp, X);
+  // Asp should be empty after calling this function
+  
+  return 0;
+}
+\endprecode
+
+
+<h4>Related topics :</h4>
+<p><a href="direct.php">Direct solvers for sparse linear systems</a></p>
+
+
+<h4>Location :</h4>
+<p>Lapack_LinearEquations.cxx<br/>
+Mumps.cxx<br/>
+SuperLU.cxx<br/>
+UmfPack.cxx<br/>
+Pastix.cxx<br/>
+SparseSolver.cxx</p>
+
+
+
+<div class="separator"><a name="RefineSolutionLU"></a></div>
+
+
+
+<h3>RefineSolutionLU</h3>
+
+
+<h4>Syntax :</h4>
+ <pre class="syntax-box">
+  void RefineSolutionLU(const Matrix&amp;, const Matrix&amp;, Vector&lt;int&gt;&amp;,
+                        Vector&amp;, const Vector&amp;, T&amp;, T&amp;);
+</pre>
+
+
+<p><code>RefineSolutionLU</code> improves the computed solution to a system of linear equations and provides error bounds and backward error estimates for the solution. This function should be called after GetLU and SolveLU.</p>
+
+
+<h4> Example : </h4>
+\precode
+Matrix<double> A(3, 3);
+Matrix<double> mat_lu(3, 3);
+// initialization of A
+A.Fill();
+// factorization of A
+mat_lu = A;
+Vector<int> pivot;
+GetLU(mat_lu, pivot);
+
+// solution of linear system
+Vector<double> X(3), B(3);
+B.Fill();
+X = B;
+GetLU(mat_lu, pivot, X);
+
+// now we can call RefineSolutionLU
+// backward error
+double berr;
+// forward error
+double ferr;
+RefineSolutionLU(A, mat_lu, pivot, X, B, ferr, berr);
+\endprecode
+
+
+<h4>Related topics : </h4>
+<p><a href="#GetLU">GetLU</a></p>
+
+
+<h4>Location :</h4><br/>
+<p> Lapack_LinearEquations.cxx
+</p>
+
+
+
+<div class="separator"><a name="GetCholesky"></a></div>
+
+
+
+<h3>GetCholesky, SolveCholesky, MltCholesky</h3>
+
+
+<h4>Syntax :</h4>
+ <pre class="syntax-box">
+  void GetCholesky(Matrix&amp;);
+  void SolveCholesky(SeldonTrans, const Matrix&amp;, Vector&amp;);
+  void SolveCholesky(SeldonNoTrans, const Matrix&amp;, Vector&amp;);
+  void MltCholesky(SeldonTrans, const Matrix&amp;, Vector&amp;);
+  void MltCholesky(SeldonNoTrans, const Matrix&amp;, Vector&amp;);
+</pre>
+
+
+<p><code>SolveCholesky</code> performs a Cholesky factorization (A = LL<sup>T</sup>) of the provided matrix. This function is implemented both for dense and sparse symmetric matrices. For sparse matrices, it is preferable to use the Cholmod interface (#define SELDON_WITH_CHOLMOD). SolveCholesky performs a solution by L or L<sup>T</sup>. MltCholesky performs a matrix vector product by L or L<sup>T</sup>. For sparse matrices, you can use SparseCholeskySolver, which is detailed in the section devoted to direct solvers.</p>
+
+
+<h4> Example : </h4>
+
+\precode
+// lapack for dense matrices
+#define SELDON_WITH_LAPACK
+// Cholmod for sparse matrices
+#define SELDON_WITH_CHOLMOD
+
+#include "Seldon.hxx"
+
+int main()
+{
+  // symmetric matrix
+  int n = 3;
+  Matrix<double, Symmetric, RowSymPacked> A(n, n);
+
+  // for example, you can set A = C*C^T
+  // if you don't provide a definite positive matrix, GetCholesky will fail
+  Matrix<double, General, RowMajor> C(n, n), A2(n, n);
+  C.FillRand(); Mlt(1e-9, C); A2.Fill(0);
+  MltAdd(1.0, SeldonTrans, C, SeldonNoTrans, C, 0.0, A2);
+  for (int i = 0; i < n; i++)
+    for (int j = i; j < n; j++)
+      A(i, j) = A2(i, j);
+
+  // Cholesky factorization
+  GetCholesky(A);
+
+  Vector<double> X(n), B(n);
+  X.Fill();
+
+  // you can perform a matrix vector product by A : b = A*x = L L^T x
+  // first step : b = L ^T x
+  B = X;
+  MltCholesky(SeldonTrans, A, B);
+  // second step : b = L b
+  MltCholesky(SeldonNoTrans, A, B);
+
+  // now you can solve the linear system A x = b, ie L L^T x = b
+  // first step x = L \ b
+  X = B;
+  SolveCholesky(SeldonNoTrans, A, X);
+  // second step x = L^T \ x
+  SolveCholesky(SeldonTrans, A, X);
+
+  // for sparse matrices, use Cholmod
+  MatrixCholmod mat_chol;
+  Matrix<double, Symmetric, ArrayRowSymSparse> M(n, n);
+  GetCholesky(M, mat_chol);
+  // M should be empty after GetCholesky
+  // if you want to keep it, GetCholesky(M, mat_chol, true);
+  // first step x = L \ b
+  X = B;
+  SolveCholesky(SeldonNoTrans, mat_chol, X);
+  // second step x = L^T \ x
+  SolveCholesky(SeldonTrans, mat_chol, X);
+  
+  // MltCholesky is also available
+
+  return 0;
+}
+\endprecode
+
+
+<h4>Location :</h4>
+<p>Lapack_LinearEquations.cxx <br/>
+Cholmod.cxx<br/>
+SparseCholeskyFactorisation.cxx </p>
+
+
+
+<div class="separator"><a name="ReciprocalConditionNumber"></a></div>
+
+
+
+<h3>ReciprocalConditionNumber</h3>
+
+
+<h4>Syntax :</h4>
+ <pre class="syntax-box">
+  T ReciprocalConditionNumber(const Matrix&amp;, const Vector&lt;int&gt;&amp;,
+                              SeldonNorm1, T&amp;);
+  T ReciprocalConditionNumber(const Matrix&amp;, const Vector&lt;int&gt;&amp;,
+                              SeldonNormInf, T&amp;);
+</pre>
+
+
+<p>This function estimates the reciprocal of the condition number of a matrix A, in either the 1-norm or the infinity-norm, using the LU factorization computed by GetLU.</p>
+
+
+<h4> Example : </h4>
+\precode
+Matrix<double> A(3, 3);
+// initialization of A
+A.Fill();
+// computation of 1-norm and infinity-norm of matrix
+double anorm_one = Norm1(A);
+double anorm_inf = NormInf(A);
+// factorization of A
+Vector<int> pivot;
+GetLU(mat_lu, pivot);
+
+// computation of reciprocal of condition number in 1-norm
+double rcond = ReciprocalConditionNumber(A, pivot, SeldonNorm1, anorm_one);
+// or infinity norm
+rcond = ReciprocalConditionNumber(A, pivot, SeldonNormInf, anorm_inf);
+\endprecode
+
+
+<h4>Related topics : </h4>
+<p><a href="#GetLU">GetLU</a></p>
+
+
+<h4>Location :</h4>
+<p>Lapack_LinearEquations.cxx
+</p>
+
+
+
+<div class="separator"><a name="GetScalingFactors"></a></div>
+
+
+
+<h3>GetScalingFactors</h3>
+
+
+<h4>Syntax : </h4>
+ <pre class="syntax-box">
+  void GetScalingFactors(const Matrix&amp;, Vector&amp;, Vector&amp;, T&amp;, T&amp;, T&amp;);
+</pre>
+
+
+<p>This function computes a row and column scaling that reduce the condition number of the matrix. This function is only defined for storages RowMajor and ColMajor (unsymmetric dense matrices).</p>
+
+
+<h4> Example : </h4>
+\precode
+Matrix<double> A(5, 3);
+// initialization of A
+A.Fill();
+
+// computation of scaling
+int m = A.GetM(), n = A.GetN();
+Vector<double> row_scale(m), col_scale(n);
+double row_condition_number, col_condition_number;
+
+GetScalingFactors(A, row_scale, col_scale, row_condition_number, col_condition_number, amax);
+
+\endprecode
+
+
+<h4>Location :</h4>
+<p>Lapack_LinearEquations.cxx
+</p>
+
+
+
+<div class="separator"><a name="GetInverse"></a></div>
+
+
+
+<h3>GetInverse</h3>
+
+
+<h4>Syntax :</h4>
+ <pre class="syntax-box">
+  void GetInverse(Matrix&amp;);
+</pre>
+
+
+<p>This function overwrites a dense matrix with its inverse.</p>
+
+
+<h4> Example : </h4>
+\precode
+Matrix<double> A(3, 3);
+// initialization of A
+A.Fill();
+
+// computation of the inverse
+GetInverse(A);
+\endprecode
+
+
+<h4>Related topics : </h4>
+<p><a href="#GetLU">GetLU</a></p>
+
+
+<h4>Location :</h4>
+<p>Lapack_LinearEquations.cxx
+</p>
+
+
+
+<div class="separator"><a name="GetQR"></a></div>
+
+
+
+<h3>GetQR, SolveQR</h3>
+
+
+<h4>Syntax :</h4>
+ <pre class="syntax-box">
+  void GetQR(Matrix&amp;, Vector&amp;)
+  void GetQR(Matrix&amp;, Matrix&amp;, Matrix&amp;)
+  void SolveQR(Matrix&amp;, Vector&amp;, Vector&amp;)
+</pre>
+
+
+<p><code>GetQR</code> computes the QR factorization of a rectangular matrix, while <code>SolveQR</code> exploits this factorization to solve a least-squares problem. This is only defined for storages RowMajor and ColMajor (unsymmetric dense matrices). You can also compute explicitly the factors Q and R, but the storage will be more important in that case. </p>
+
+
+<h4> Example : </h4>
+\precode
+Matrix<double> A(5, 3);
+// initialization of A
+A.Fill();
+
+// QR Factorization
+int m = A.GetM(), n = A.GetN();
+Vector<double> tau;
+GetQR(A, tau);
+
+// Solving Least squares problem QR X = B  (m >= n)
+Vector<double> X, B(m);
+B.Fill();
+SolveQR(A, tau, X);
+
+// you can also compute Q and R such that A = Q R
+A.Fill();
+Matrix<double> Q, R;
+GetQR(A, Q, R);
+
+\endprecode
+
+
+<h4>Location :</h4>
+<p> Lapack_LeastSquares.cxx
+</p>
+
+
+
+<div class="separator"><a name="GetQR_Pivot"></a></div>
+
+
+
+<h3>GetQR_Pivot</h3>
+
+
+<h4>Syntax :</h4>
+ <pre class="syntax-box">
+  void GetQR_Pivot(Matrix&amp;, Vector&amp;, Vector<int>& pivot)
+</pre>
+
+
+<p><code>GetQR_Pivot</code> computes the QR factorization of a rectangular matrix with pivoting (subroutine dgeqp3), it is only implemented for ColMajor storage. </p>
+
+
+<h4> Example : </h4>
+\precode
+Matrix<double> A(5, 3);
+// initialization of A
+A.Fill();
+
+// QR Factorization
+int m = A.GetM(), n = A.GetN();
+Vector<double> tau;
+Vector<int> pivot;
+GetQR_Pivot(A, tau, pivot);
+
+// Solving Least squares problem QR X = B  (m >= n)
+Vector<double> X, B(m);
+B.Fill();
+SolveQR(A, tau, X);
+\endprecode
+
+
+<h4>Location :</h4>
+<p> Lapack_LeastSquares.cxx
+</p>
+
+
+
+<div class="separator"><a name="GetLQ"></a></div>
+
+
+
+<h3>GetLQ, SolveLQ</h3>
+
+
+<h4>Syntax :</h4>
+ <pre class="syntax-box">
+  void GetLQ(Matrix&lt;T&gt;&amp;, Vector&lt;T&gt;&amp;);
+  void GetLQ(Matrix&amp;, Matrix&amp;, Matrix&amp;)
+  void SolveLQ(Matrix&lt;T&gt;&amp;, Vector&lt;T&gt;&amp;, Vector&lt;T&gt;&amp;);
+</pre>
+
+
+<p><code>GetLQ</code> computes the LQ factorization of a rectangular matrix, while <code>SolveLQ</code> exploits this factorization to solve a least-squares problem. This is only defined for storages RowMajor and ColMajor (unsymmetric dense matrices). You can also compute explicitly the factors Q and L, but the storage will be more important in that case. </p>
+
+
+<h4> Example : </h4>
+\precode
+Matrix<double> A(3, 5);
+// initialization of A
+A.Fill();
+
+// LQ Factorization
+int m = A.GetM(), n = A.GetN();
+Vector<double> tau;
+GetLQ(A, tau);
+
+// Solving Least squares problem LQ X = B  (m <= n)
+Vector<double> X, B(m);
+B.Fill();
+SolveLQ(A, tau, X);
+
+// you can also compute Q and L such that A = L Q
+A.Fill();
+Matrix<double> Q, L;
+GetLQ(A, L, Q);
+
+\endprecode
+
+
+<h4>Location :</h4>
+<p>Lapack_LeastSquares.cxx
+</p>
+
+
+
+<div class="separator"><a name="MltQ_FromQR"></a></div>
+
+
+
+<h3>MltQ_FromQR, MltQ_FromLQ</h3>
+
+
+<h4>Syntax :</h4>
+ <pre class="syntax-box">
+  void MltQ_FromQR(const Side&amp;, const Trans&amp;, const Matrix&amp;,
+                   const Vector&amp;, Matrix&amp;);
+
+  void MltQ_FromLQ(const Side&amp;, const Trans&amp;, const Matrix&amp;,
+                   const Vector&amp;, Matrix&amp;);
+</pre>
+
+
+<p>This function multiplies a matrix by Q, where Q is the orthogonal matrix computed during QR factorization (or LQ factorization). This is only defined for storages RowMajor and ColMajor (unsymmetric dense matrices).</p>
+
+
+<h4> Example : </h4>
+\precode
+Matrix<double> A(5, 3);
+// initialization of A
+A.Fill();
+
+// QR Factorization
+int m = A.GetM(), n = A.GetN();
+Vector<double> tau;
+GetQR(A, tau);
+
+// computation of Q*C
+Matrix<double> C(m, m);
+MltQ_FromQR(SeldonLeft, SeldonNoTrans, A, tau, C);
+
+// you can compute C*transpose(Q)
+MltQ_FromQR(SeldonRight, SeldonTrans, A, tau, C);
+
+// for complex numbers, you have SeldonConjTrans
+
+\endprecode
+
+
+<h4>Location :</h4>
+<p>Lapack_LeastSquares.cxx
+</p>
+
+
+
+<div class="separator"><a name="GetQ_FromQR"></a></div>
+
+
+
+<h3>GetQ_FromQR, GetQ_FromLQ</h3>
+
+<h4>Syntax :</h4>
+ <pre class="syntax-box">
+  void GetQ_FromQR(Matrix&amp;, Vector&amp;);
+  void GetQ_FromLQ(Matrix&amp;, Vector&amp;);
+</pre>
+
+
+<p>This functions overwrites the QR factorization (or LQ factorisation) by matrix Q.  This is only defined for storages RowMajor and ColMajor (unsymmetric dense matrices). </p>
+
+
+<h4> Example : </h4>
+\precode
+Matrix<double> A(5, 3);
+// initialization of A
+A.Fill();
+
+// QR Factorization
+int m = A.GetM(), n = A.GetN();
+Vector<double> tau;
+GetQR(A, tau);
+
+Matrix<double> Q = A;
+GetQ_FromQR(Q, tau);
+
+// similar stuff with LQ Factorization
+A.Fill();
+int m = A.GetM(), n = A.GetN();
+Vector<double> tau;
+GetLQ(A, tau);
+
+Q = A;
+GetQ_FromLQ(Q, tau);
+
+\endprecode
+
+
+<h4>Location :</h4>
+<p>Lapack_LeastSquares.cxx
+</p>
+
+
+
+<div class="separator"><a name="GetEigenvalues"></a></div>
+
+
+
+<h3>GetEigenvalues</h3>
+
+
+<h4>Syntax :</h4>
+ <pre class="syntax-box">
+  void GetEigenvalues(Matrix&amp;, Vector&amp;);
+  void GetEigenvalues(Matrix&amp;, Vector&amp;, Vector&amp;);
+  void GetEigenvalues(Matrix&amp;, Matrix&amp;, Vector&amp;);
+  void GetEigenvalues(Matrix&amp;, Matrix&amp;, Vector&amp;, Vector&amp;);
+  void GetEigenvalues(Matrix&amp;, Matrix&amp;, Vector&amp;, Vector&amp;, Vector&amp;);
+</pre>
+
+
+<p>This function computes the eigenvalues of a matrix. The matrix is modified after calling this function. </p>
+
+
+<h4> Example : </h4>
+\precode
+Matrix<double> A(5, 5);
+Vector<double> lambda_real, lambda_imag;
+// initialization of A
+A.Fill();
+
+// computing eigenvalues (real part and imaginary part)
+GetEigenvalues(A, lambda_real, lambda_imag);
+
+// for symmetric matrices, eigenvalues are real
+Matrix<double, Symmetric, RowSymPacked> B(5, 5);
+Vector<double> lambda;
+// initialization of B
+B.Fill();
+GetEigenvalues(B, lambda);
+
+// for hermitian matrices too
+Matrix<complex<double>, General, RowHermPacked> C(5, 5);
+// initialization of C
+C.Fill();
+GetEigenvalues(C, lambda);
+
+// other complex matrices -> complex eigenvalues
+Matrix<complex<double>, Symmetric, RowSymPacked> D(5, 5);
+Vector<complex<double> > lambda_cpx;
+// initialization of D
+D.Fill();
+GetEigenvalues(D, lambda_cpx);
+\endprecode
+
+
+<p>The function can also solve a generalized eigenvalue problem, as detailed in the following example.</p>
+
+
+<h4> Example : </h4>
+\precode
+// symmetric matrices A, B
+Matrix<double, Symmetric, RowSymPacked> A(5, 5), B(5, 5);
+Vector<double> lambda;
+// initialization of A and B as you want
+// B has to be positive definite
+A.FillRand(); B.SetIdentity();
+
+// we solve generalized eigenvalue problem
+// i.e. seeking lambda so that A x = lambda B x
+// the function assumes that B is POSITIVE DEFINITE
+GetEigenvalues(A, B, lambda);
+
+// same use for hermitian matrices
+Matrix<complex<double>, General, RowHermPacked> Ah(5, 5), Bh(5,5);
+// initialize Ah and Bh as you want
+// Bh has to be positive definite
+// as a result, eigenvalues are real and you compute them 
+GetEigenvalues(Ah, Bh, lambda);
+
+// other complex matrices
+// provide complex eigenvalues, potentially infinite if B is indefinite
+Matrix<complex<double> > C(5, 5), D(5, 5);
+Vector<complex<double> > alphac, betac;
+
+// eigenvalues are written in the form lambda = alphac/betac
+GetEigenvalues(C, D, alphac, betac);
+
+// for unsymmetric real matrices, real part and imaginary are stored
+// in different vectors
+Matrix<double> Ar(5, 5), Br(5, 5);
+Vector<double> alpha_real, alpha_imag, beta;
+
+// lambda are written in the form lambda = (alpha_real,alpha_imag)/beta
+GetEigenvalues(Ar, Br, alpha_real, alpha_imag, beta);
+
+\endprecode
+
+
+<h4>Location :</h4>
+<p>Lapack_Eigenvalues.cxx
+</p>
+
+
+
+<div class="separator"><a name="GetEigenvaluesEigenvectors"></a></div>
+
+
+
+<h3>GetEigenvaluesEigenvectors</h3>
+
+
+<h4>Syntax :</h4>
+ <pre class="syntax-box">
+  void GetEigenvaluesEigenvectors(Matrix&amp;, Vector&amp;, Matrix&amp;);
+  void GetEigenvaluesEigenvectors(Matrix&amp;, Vector&amp;, Vector&amp;, Matrix&amp;);
+  void GetEigenvaluesEigenvectors(Matrix&amp;, Matrix&amp;, Vector&amp;, Matrix&amp;);
+  void GetEigenvaluesEigenvectors(Matrix&amp;, Matrix&amp;, Vector&amp;, Vector&amp;,
+                                  Matrix&amp;);
+</pre>
+
+
+<p>This function computes the eigenvalues and eigenvectors of a matrix. The matrix is modified after the call to this function. Each eigenvector is stored in a column. When real unsymmetric matrices are selected, you need to compute real and imaginary part of eigenvalues, then if the j-th eigenvalue is real, the j-th column is the eigenvector associated. If j-th and j+1-th are complex conjugate eigenvalues, the j-th and j+1-the associated columns are vectors A et B such that A+iB and A-iB are the complex conjugate eigenvectors of the initial matrix. This function has also been overloaded for sparse eigenvalue problems, by calling an external eigenvalue solver (such as Arpack or Anasazi).</p>
+
+
+<h4> Example : </h4>
+\precode
+Matrix<double> A(5, 5);
+Vector<double> lambda_real, lambda_imag;
+Matrix<double> eigen_vectors;
+// initialization of A
+A.Fill();
+
+// computing eigenvalues and eigenvectors
+GetEigenvalues(A, lambda_real, lambda_imag, eigen_vectors);
+
+// for symmetric matrices, eigenvalues are real
+Matrix<double, Symmetric, RowSymPacked> B(5, 5);
+Vector<double> lambda;
+// initialization of B
+B.Fill();
+GetEigenvalues(B, lambda);
+
+// for hermitian matrices too
+Matrix<complex<double>, General, RowHermPacked> C(5, 5);
+// initialization of C
+C.Fill();
+GetEigenvalues(C, lambda);
+
+// other complex matrices -> complex eigenvalues
+Matrix<complex<double>, Symmetric, RowSymPacked> D(5, 5);
+Vector<complex<double> > lambda_cpx;
+// initialization of D
+D.Fill();
+GetEigenvalues(D, lambda_cpx);
+
+
+\endprecode
+
+
+<p>As for <a href="#GetEigenvalues">GetEigenvalues</a>, this function can be used to solve generalized eigenvalues problems as detailed in the following example.</p>
+
+
+<h4> Example : </h4>
+\precode
+// symmetric matrices A, B
+Matrix<double, Symmetric, RowSymPacked> A(5, 5), B(5, 5);
+Vector<double> lambda;
+Matrix<double> eigen_vectors;
+// initialization of A and B as you want
+// B has to be positive definite
+A.FillRand(); B.SetIdentity();
+
+// we solve generalized eigenvalue problem
+// i.e. seeking lambda so that A x = lambda B x
+// the function assumes that B is POSITIVE DEFINITE
+GetEigenvalues(A, B, lambda, eigen_vectors);
+
+// same use for hermitian matrices
+Matrix<complex<double>, General, RowHermPacked> Ah(5, 5), Bh(5,5);
+// initialize Ah and Bh as you want
+// Bh has to be positive definite
+// as a result, eigenvalues are real and you compute them 
+Matrix<complex<double> > eigen_vec_cpx;
+GetEigenvalues(Ah, Bh, lambda, eigen_vec_cpx);
+
+// other complex matrices
+// provide complex eigenvalues, potentially infinite if B is indefinite
+Matrix<complex<double> > C(5, 5), D(5, 5);
+Vector<complex<double> > alphac, betac;
+
+// eigenvalues are written in the form lambda = alphac/betac
+GetEigenvalues(C, D, alphac, betac, eigen_vec_cpx);
+
+// for unsymmetric real matrices, real part and imaginary are stored
+// in different vectors
+Matrix<double> Ar(5, 5), Br(5, 5);
+Vector<double> alpha_real, alpha_imag, beta;
+
+// lambda are written in the form lambda = (alpha_real,alpha_imag)/beta
+GetEigenvalues(Ar, Br, alpha_real, alpha_imag, beta, eigen_vector);
+
+\endprecode
+
+
+<h4>Location :</h4>
+<p>Lapack_Eigenvalues.cxx
+</p>
+
+
+
+<div class="separator"><a name="GetSVD"></a></div>
+
+
+
+<h3>GetSVD</h3>
+
+
+<h4>Syntax :</h4>
+ <pre class="syntax-box">
+  void GetSVD(Matrix&amp;, Vector&amp;, Matrix&amp;, Matrix&amp;);
+</pre>
+
+
+<p>This function computes the singular value decomposition of a rectangular matrix. As a result, this function is defined only for storages RowMajor and ColMajor. </p>
+
+
+<h4> Example : </h4>
+\precode
+Matrix<double> A(10, 5);
+Vector<double> lambda;
+Matrix<double> U, V;
+// initialization of A
+A.Fill();
+
+// computing singular value decomposition
+// A = U diag(lambda) V
+GetSVD(A, lambda, U, V);
+\endprecode
+
+<h4>Location :</h4>
+<p>Lapack_Eigenvalues.cxx
+</p>
+
+
+
+<div class="separator"><a name="GetHessenberg"></a></div>
+
+
+
+<h3>GetHessenberg</h3>
+
+
+<h4>Syntax :</h4>
+ <pre class="syntax-box">
+  void GetHessenberg(Matrix&amp; A, Matrix&amp; Q);
+  void GetHessenberg(Matrix&amp; A, Matrix&amp; B, Matrix&amp; Q, Matrix&amp; Z);
+</pre>
+
+
+<p>This function reduces a matrix A to its Hessenberg form, Q being an orthogonal matrix that is generated during the procedure. </p>
+
+
+<h4> Example : </h4>
+\precode
+// square matrix
+Matrix<double> A(10, 10), Q;
+A.FillRand();
+
+// computation of H and Q, such that
+// Q^H A Q = H
+// A is replaced by H
+// equivalent Matlab function : [Q, A] = hess(A)
+GetHessenberg(A, Q);
+
+// If you consider two matrices A, B, you can compute
+// AA, BB, Q and Z such that
+// Q^H A Z = AA  and Q^H B Z = BB
+// A and B are overwritten with matrices AA and BB
+// Equivalent Matlab function :
+// [A, B, Q, Z] = hess(A, B); Q = Q'; Z = Z';
+Matrix<double> B(10, 10), Z;
+B.FillRand();
+GetHessenberg(A, B, Q, Z);
+
+\endprecode
+
+<h4>Location :</h4>
+<p>Lapack_Eigenvalues.cxx
+</p>
+
+
+
+<div class="separator"><a name="GetQZ"></a></div>
+
+
+
+<h3>GetQZ</h3>
+
+
+<h4>Syntax :</h4>
+ <pre class="syntax-box">
+  void GetQZ(Matrix&amp; A, Matrix&amp; B, Matrix&amp; Q, Matrix&amp; Z);
+</pre>
+
+
+<p>This function reduces matrices A and B to quasi-triangular forms, Q and Z being orthogonal matrix that are generated during the procedure. </p>
+
+
+<h4> Example : </h4>
+\precode
+// square matrix
+Matrix<double> A(10, 10), Q;
+A.FillRand();
+
+// If you consider two matrices A, B, you can compute
+// AA, BB, Q and Z such that
+// Q^H A Z = AA  and Q^H B Z = BB
+// A and B are overwritten with matrices AA and BB
+// Equivalent Matlab function :
+// [A, B, Q, Z] = qz(A, B); Q = Q'; Z = Z';
+Matrix<double> B(10, 10), Z;
+B.FillRand();
+GetQZ(A, B, Q, Z);
+
+\endprecode
+
+<h4>Location :</h4>
+<p>Lapack_Eigenvalues.cxx
+</p>
+
+
+
+<div class="separator"><a name="SolveHessenberg"></a></div>
+
+
+
+<h3>SolveHessenberg</h3>
+
+
+<h4>Syntax :</h4>
+ <pre class="syntax-box">
+  void SolveHessenberg(Matrix&amp; A, Vector&amp; x);
+</pre>
+
+
+<p>This function replaces x by the solution of A y = x, assuming that A is an Hessenberg matrix. A is modified in the procedure, therefore you can only solve a system. </p>
+
+
+<h4> Example : </h4>
+\precode
+// Hessenberg matrix (upper triangular + subdiagonal)
+Matrix<double> A(10, 10), Q;
+A.FillRand();
+for (int i = 0; i < 10; i++)
+  for (int j = 0; j < i-1; j++)
+    A(i, j) = 0;
+
+// solution of A x = b
+Vector<double> x, b(10);
+b.FillRand(); x = b;
+SolveHessenberg(A, x);
+
+\endprecode
+
+<h4>Location :</h4>
+<p>Lapack_Eigenvalues.cxx
+</p>
+
+
+
+<div class="separator"><a name="SolveHessenbergTwo"></a></div>
+
+
+
+<h3>SolveHessenbergTwo</h3>
+
+
+<h4>Syntax :</h4>
+ <pre class="syntax-box">
+  void SolveHessenbergTwo(Matrix&amp; A, Vector&amp; x);
+</pre>
+
+
+<p>This function replaces x by the solution of A y = x, assuming that A is a an upper-triangular matrix plus two sub-diagonals. A is modified in the procedure, therefore you can only solve a system. </p>
+
+
+<h4> Example : </h4>
+\precode
+// 2-Hessenberg matrix (upper triangular + two subdiagonals)
+Matrix<double> A(10, 10), Q;
+A.FillRand();
+for (int i = 0; i < 10; i++)
+  for (int j = 0; j < i-2; j++)
+    A(i, j) = 0;
+
+// solution of A x = b
+Vector<double> x, b(10);
+b.FillRand(); x = b;
+SolveHessenbergTwo(A, x);
+
+\endprecode
+
+<h4>Location :</h4>
+<p>Lapack_Eigenvalues.cxx
+</p>
+
+
+
+<div class="separator"><a name="SolveSylvester"></a></div>
+
+
+
+<h3>SolveSylvester</h3>
+
+
+<h4>Syntax :</h4>
+ <pre class="syntax-box">
+  void SolveSylvester(Matrix&amp; A, Matrix&amp; B, Matrix&amp; C, Matrix&amp; D, Matrix&amp; E);
+</pre>
+
+
+<p>This function replaces E by the solution of A X B<sup>H</sup> + C X D<sup>H</sup> = E. </p>
+
+
+<h4> Example : </h4>
+\precode
+// Sylvester equation : A X B^H + C X D^H = E
+Matrix<complex<double> > A(10, 10), B(10, 10), C(10, 10), D(10, 10), E(10, 10);
+A.FillRand(); B.FillRand(); C.FillRand();
+D.FillRand(); E.FillRand();
+
+// E is overwritten by solution, A, B, C and D are modified in the process
+SolveSylvester(A, B, C, D, E);
+\endprecode
+
+<h4>Location :</h4>
+<p>Lapack_Eigenvalues.cxx
+</p>
+
+*/

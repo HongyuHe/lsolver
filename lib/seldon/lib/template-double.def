@@ -1,0 +1,103 @@
+// Copyright (C) 2001-2010 Vivien Mallet
+//
+// This file is part of the linear-algebra library Seldon,
+// http://seldon.sourceforge.net/.
+//
+// Seldon is free software; you can redistribute it and/or modify it under the
+// terms of the GNU Lesser General Public License as published by the Free
+// Software Foundation; either version 2.1 of the License, or (at your option)
+// any later version.
+//
+// Seldon is distributed in the hope that it will be useful, but WITHOUT ANY
+// WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+// FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public License for
+// more details.
+//
+// You should have received a copy of the GNU Lesser General Public License
+// along with Seldon. If not, see http://www.gnu.org/licenses/.
+
+
+(define @storage = ColMajor, RowMajor, ColSparse, RowSparse, 
+ RowSymSparse, ArrayRowSparse, ArrayRowSymSparse,
+ RowSymPacked, RowSym, RowHerm, RowHermPacked, RowUpTriang, RowLoTriang,
+ RowUpTriangPacked, RowLoTriangPacked);
+
+// Dense matrices.
+(define @storage_full = ColMajor, RowMajor, RowSymPacked,
+ RowSym, RowHerm, RowHermPacked, RowUpTriang, RowLoTriang,
+ RowUpTriangPacked, RowLoTriangPacked);
+
+// Full storage, complex and real values accepted.
+(define @storage_full_real_complex = ColMajor, RowMajor, RowSymPacked, 
+ RowSym, RowUpTriang, RowLoTriang, RowUpTriangPacked,
+ RowLoTriangPacked);
+
+// Full storage, only complex accepted.
+(define @storage_full_complex = RowHerm, RowHermPacked);
+
+// Blas matrices.
+(define @storage_blas = ColMajor, RowMajor, RowSymPacked, RowSym, RowHerm,
+ RowHermPacked, RowUpTriang, RowLoTriang, RowUpTriangPacked, RowLoTriangPacked);
+
+// Blas matrices, complex and real values accepted.
+(define @storage_blas_real_complex = ColMajor, RowMajor,
+ RowSymPacked, RowSym, RowUpTriang, RowLoTriang, RowUpTriangPacked,
+ RowLoTriangPacked);
+
+// Blas matrices, only complex accepted.
+(define @storage_blas_complex = RowHerm, RowHermPacked);
+
+// Blas matrices per category.
+(define @storage_blasGE = ColMajor, RowMajor);
+(define @storage_blasHE = RowHerm);
+(define @storage_blasHP = RowHermPacked);
+(define @storage_blasH = RowHerm, RowHermPacked);
+(define @storage_blasSY = RowSym);
+(define @storage_blasSP = RowSymPacked);
+(define @storage_blasS = RowSym, RowSymPacked);
+(define @storage_blasTR = RowUpTriang, RowLoTriang);
+(define @storage_blasTP = RowUpTriangPacked, RowLoTriangPacked);
+(define @storage_blasTCol = ColUpTriang, ColLoTriang, ColUpTriangPacked, ColLoTriangPacked);
+(define @storage_blasTRow = RowUpTriang, RowLoTriang, RowUpTriangPacked, RowLoTriangPacked);
+(define @storage_blasT = RowUpTriang, RowLoTriang, RowUpTriangPacked, RowLoTriangPacked);
+
+(define @storage_sparse = ColSparse, RowSparse,
+  RowSymSparse, ArrayRowSparse, ArrayRowSymSparse);
+
+(define @storage_rectangular = ColMajor, RowMajor, ColSparse, RowSparse, ArrayRowSparse);
+
+(define @storage_rectangular_full = ColMajor, RowMajor);
+
+(define @storage_rectangular_sparse = ColSparse, RowSparse, ArrayRowSparse);
+
+(define @storage_square = RowSymSparse, ArrayRowSymSparse, RowSymPacked,
+ RowSym, RowHerm, RowHermPacked, RowUpTriang, RowLoTriang,
+ RowUpTriangPacked, RowLoTriangPacked);
+
+(define @storage_square_full = RowSymPacked, RowSym,
+ RowHerm, RowHermPacked, RowUpTriang, RowLoTriang,
+ RowUpTriangPacked, RowLoTriangPacked);
+
+(define @storage_square_sparse = RowSymSparse,
+ ArrayRowSymSparse);
+
+(define @scalar = int, double, complexdouble);
+
+(define @real = double);
+
+(define @complex = complexdouble);
+
+(define @real_complex = double, complexdouble);
+
+// Seldon objects.
+(define @trans = class_SeldonTrans, class_SeldonNoTrans, class_SeldonConjTrans);
+(define @trans+ = class_SeldonTrans, class_SeldonNoTrans, class_SeldonConjTrans);
+(define @diag = SeldonUnit, SeldonNonUnit);
+(define @uplo = SeldonUpper, SeldonLower);
+(define @norm = SeldonNorm1, SeldonNormInf);
+(define @conj = SeldonConj, SeldonUnconj);
+(define @side = SeldonLeft, SeldonRight);
+
+// Miscellaneous.
+(define @colrow = Col, Row);
+(define @ul = Up, Lo);

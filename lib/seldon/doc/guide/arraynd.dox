@@ -1,0 +1,665 @@
+/*! \file arraynd.dox
+    \brief Multi-dimensional Arrays.
+*/
+
+/*!
+\page arraynd Multi-dimensional Arrays
+
+<h2>Definition</h2>
+
+<p> Multi-dimensional arrays are instances of the class <code>Array</code>. Class <code>Array</code> is a template class: <code>Array&lt;T, N, Allocator&gt;</code>. As for vectors, <code>T</code> is the type of the elements to be stored (e.g. <code>double</code>), N is the number of dimensions. The current implementation is limited to N below or equal to 9. <code>Allocator</code> defines the way memory is managed. It is close to STL allocators. See the section "Allocators" for further details.  </p>
+
+<h2>Declaration</h2>
+
+<p> There is a default <code>Allocator</code> (see the section "Allocators"). It means that the last template parameter may be omitted. Then a multi-dimensional array of integers may be declared thanks to the line: </p>
+
+\precode Array<int, 5> A;\endprecode
+
+<p> This defines an array of size 0 x 0 x 0 x 0 x 0, that is to say an empty array. To define a 3D array of size 5 x 3 x 6 x 2 x 4, one may write: </p>
+
+\precode Array<int, 5> A(5, 3, 6, 2, 4);\endprecode
+
+<h2>Use of multi-dimensional arrays</h2>
+
+<p> Only a few methods are available for multi-dimensional arrays because they are not the main concern of %Seldon. Mainly, the access to elements is achieved through the <code>operator(int, int, int, int, ...)</code>, and indices start at 0: </p>
+
+\precode
+Array<double, 3> A(5, 6, 3);
+A(0, 1, 3) = -3.1;
+A(0, 0, 5) = 1.2 * A(0, 1, 3);
+\endprecode
+
+<p> Methods related to multi-dimensional arrays are listed in the table below:</p>
+
+<table class="category-table">
+<tr class="category-table-tr-1">
+<td class="category-table-td"> <a href="#constructor"> constructors </a> </td> <td></td></tr>
+<tr class="category-table-tr-2">
+ <td class="category-table-td"> <a href="#operator"> operators </a> </td> <td></td></tr>
+<tr class="category-table-tr-1">
+ <td class="category-table-td"> <a href="#GetLength"> GetLength </a> </td>
+ <td class="category-table-td"> returns the i-th dimension of the array </td> </tr>
+<tr class="category-table-tr-2">
+ <td class="category-table-td"> <a href="#GetSize"> GetSize </a> </td>
+ <td class="category-table-td"> returns the number of elements stored in the array</td> </tr>
+<tr class="category-table-tr-1">
+ <td class="category-table-td"> <a href="#GetSize"> GetDataSize </a> </td>
+ <td class="category-table-td"> returns the number of elements stored in the array </td> </tr>
+<tr class="category-table-tr-2">
+ <td class="category-table-td"> <a href="#GetData"> GetData </a> </td>
+ <td class="category-table-td"> returns the pointer to the elements stored in the array </td> </tr>
+<tr class="category-table-tr-1">
+ <td class="category-table-td"> <a href="#Reallocate"> Reallocate </a> </td>
+ <td class="category-table-td"> modifies the size of the array </td> </tr>
+<tr class="category-table-tr-1">
+ <td class="category-table-td"> <a href="#Clear"> Clear </a> </td>
+ <td class="category-table-td"> removes all elements of the array</td> </tr>
+<tr class="category-table-tr-2">
+ <td class="category-table-td"> <a href="#Copy"> Copy </a> </td>
+ <td class="category-table-td"> copies a multidimensional array </td> </tr>
+<tr class="category-table-tr-1">
+ <td class="category-table-td"> <a href="#Fill"> Fill </a> </td>
+ <td class="category-table-td"> sets elements to 0, 1, 2, etc or to a given value </td> </tr>
+<tr class="category-table-tr-2">
+ <td class="category-table-td"> <a href="#Zero"> Zero </a> </td>
+ <td class="category-table-td"> sets all the elements to 0 </td> </tr>
+<tr class="category-table-tr-1">
+ <td class="category-table-td"> <a href="#FillRand"> FillRand </a> </td>
+ <td class="category-table-td"> sets randomly elements of the array </td> </tr>
+<tr class="category-table-tr-2">
+ <td class="category-table-td"> <a href="#Print"> Print </a> </td>
+ <td class="category-table-td"> displays the array </td> </tr>
+<tr class="category-table-tr-1">
+ <td class="category-table-td"> <a href="#Write"> Write </a> </td>
+ <td class="category-table-td"> writes the array in a binary file </td> </tr>
+<tr class="category-table-tr-2">
+ <td class="category-table-td"> <a href="#Read"> Read </a> </td>
+ <td class="category-table-td"> reads the array from a binary file</td> </tr>
+</table>
+
+
+
+<div class="separator"><a name="constructor"></a></div>
+
+
+
+<h3>constructors of Array</h3>
+
+<h4>Syntax :</h4>
+ <pre class="syntax-box">
+  Array(int)
+  Array(int, int)
+  Array(int, int, int)
+  Array(int, int, int, int)
+  Array(int, int, int, int, int)
+  Array(int, int, int, int, int, int)
+  Array(int, int, int, int, int, int, int)
+  Array(int, int, int, int, int, int, int, int)
+  Array(int, int, int, int, int, int, int, int, int)
+</pre>
+
+<p>You can use a constructor with the dimensions of the multi-dimensional array. </p> 
+
+<h4> Example : </h4>
+\precode
+Array<double, 4> A, B(5, 6, 3, 8);
+// then you can modify entries of B
+B(2, 0, 4, 1) = 2.5;
+
+// you can use a copy constructor
+Array<double, 4> C(B);
+
+\endprecode
+
+
+<h4>Related topics : </h4>
+<p><a href="#Reallocate">Reallocate</a><br/>
+<a href="#operator">operator =</a></p>
+
+
+<h4>Location :</h4>
+<p> Class Array<br/>
+Array.hxx Array.cxx</p>
+
+
+
+<div class="separator"><a name="operator"></a></div>
+
+
+
+<h3>Operators of Array</h3>
+
+<h4>Syntax :</h4>
+ <pre class="syntax-box">
+  operator ()(int)
+  operator ()(int, int)
+  operator ()(int, int, int)
+  operator ()(int, int, int, int)
+  operator ()(int, int, int, int, int)
+  operator ()(int, int, int, int, int, int)
+  operator ()(int, int, int, int, int, int, int)
+  operator ()(int, int, int, int, int, int, int, int)
+  operator ()(int, int, int, int, int, int, int, int, int)
+  operator = (const Array<T, N>& )
+</pre>
+
+<p>The access operator () can be used to modify A(i, j, k, m, ...). </p> 
+
+<h4> Example : </h4>
+\precode
+Array<double, 4> A, B(5, 6, 3, 8);
+// then you can modify entries of B
+B(2, 0, 4, 1) = 2.5;
+
+// you can use a copy constructor
+Array<double, 4> C(B);
+
+// or operator =
+C = B;
+
+\endprecode
+
+
+<h4>Related topics : </h4>
+<p><a href="#Reallocate">Reallocate</a><br/>
+<a href="#Copy">Copy</a></p>
+
+
+<h4>Location :</h4>
+<p> Class Array<br/>
+Array.hxx Array.cxx</p>
+
+
+
+<div class="separator"><a name="GetLength"></a></div>
+
+
+
+<h3>GetLength</h3>
+
+<h4>Syntax :</h4>
+ <pre class="syntax-box">
+  int GetLength(int) const
+</pre>
+
+<p>This method returns a dimension of the array. </p> 
+
+<h4> Example : </h4>
+\precode
+Array<double, 5> A, B(5, 6, 3, 8, 10);
+// GetLength(2) should return 3
+cout << "Third dimension of B " << B.GetLength(2) << endl;
+\endprecode
+
+
+<h4>Related topics : </h4>
+<p><a href="#Reallocate">Reallocate</a><br/>
+<a href="#GetSize">GetSize</a></p>
+
+
+<h4>Location :</h4>
+<p> Class Array<br/>
+Array.hxx Array.cxx</p>
+
+
+
+<div class="separator"><a name="GetSize"></a></div>
+
+
+
+<h3>GetSize, GetDataSize</h3>
+
+<h4>Syntax :</h4>
+ <pre class="syntax-box">
+  int GetSize() const
+  int GetDataSize() const
+</pre>
+
+<p>This method returns the number of element effectively stored in the multi-dimensional array. </p> 
+
+<h4> Example : </h4>
+\precode
+Array<double, 5> A, B(5, 6, 3, 4, 2);
+// GetSize() should return 5*6*3*4*2 = 720
+cout << "Number of elements of B " << B.GetSize() << endl;
+\endprecode
+
+
+<h4>Related topics : </h4>
+<p><a href="#Reallocate">Reallocate</a><br/>
+<a href="#GetLength">GetLength</a></p>
+
+
+<h4>Location :</h4>
+<p> Class Array<br/>
+Array.hxx Array.cxx</p>
+
+
+
+<div class="separator"><a name="GetMemorySize"></a></div>
+
+
+
+<h3>GetMemorySize</h3>
+
+<h4>Syntax :</h4>
+ <pre class="syntax-box">
+  size_t GetMemorySize() const
+</pre>
+
+<p>This method returns the memory used to store the array in bytes. </p> 
+
+<h4> Example : </h4>
+\precode
+Array<double> A, B(5, 6, 3, 2, 8);
+// GetMemorySize() should return 5*6*3*2*8*sizeof(double)
+cout << "Memory used to store B " << B.GetMemorySize() << endl;
+\endprecode
+
+
+<h4>Related topics : </h4>
+<p><a href="#Reallocate">Reallocate</a><br/>
+<a href="#GetLength1">GetLength1</a></p>
+
+
+<h4>Location :</h4>
+<p> Class Array<br/>
+Array.hxx Array.cxx</p>
+
+
+
+<div class="separator"><a name="GetData"></a></div>
+
+
+
+<h3>GetData</h3>
+
+<h4>Syntax :</h4>
+ <pre class="syntax-box">
+  T* GetData() const
+</pre>
+
+<p>This method returns the pointer to the array storing all the elements. This method
+ is a low-level routine and should be used cautiously. </p> 
+
+<h4> Example : </h4>
+\precode
+Array<double, 5> A(5, 6, 3, 8, 7);
+// If you wish to manipulate the vector containing all the elements of A :
+Vector<double> V;
+V.SetData(A.GetSize(), A.GetData());
+
+// to avoid segmentation fault
+V.Nullify();
+\endprecode
+
+
+<h4>Location :</h4>
+<p> Class Array<br/>
+Array.hxx Array.cxx</p>
+
+
+
+<div class="separator"><a name="Reallocate"></a></div>
+
+
+
+<h3>Reallocate</h3>
+
+<h4>Syntax :</h4>
+ <pre class="syntax-box">
+  void Reallocate(int i, int j, int k, int m, ...);
+</pre>
+
+<p>This method resizes the multi-dimensional array with the new dimensions given in argument.
+ If NewAlloc is used, the previous elements are lost, whereas they are kept if you are using MallocAlloc or CallocAlloc allocator. </p> 
+
+<h4> Example : </h4>
+\precode
+Array<double, 5> A(5, 6, 3, 8, 7);
+A.Fill();
+
+// then changing the size of A
+A.Reallocate(7, 2, 5, 10, 4);
+
+\endprecode
+
+
+<h4>Location :</h4>
+<p> Class Array<br/>
+Array.hxx Array.cxx</p>
+
+
+
+<div class="separator"><a name="Clear"></a></div>
+
+
+
+<h3>Clear</h3>
+
+<h4>Syntax :</h4>
+ <pre class="syntax-box">
+  void Clear()
+</pre>
+
+<p>This method clears the multi-dimensional array. </p> 
+
+<h4> Example : </h4>
+\precode
+// constructing a multi-dimensional array
+int m = 10, n = 4, p = 7, k = 5, j = 3;
+Array<double, 5> A(m, n, p, k, j);
+
+// filling A
+A(2, 0, 0, 1, 3) = 1.2;
+// ...
+
+// if you want to free the memory for other computations
+A.Clear();
+
+\endprecode
+
+
+<h4>Location :</h4>
+<p> Class Array<br/>
+Array.hxx Array.cxx</p>
+
+
+
+<div class="separator"><a name="Copy"></a></div>
+
+
+
+<h3>Copy</h3>
+
+<h4>Syntax :</h4>
+ <pre class="syntax-box">
+  void Copy(const Array&lt;T&gt;&amp; )
+</pre>
+
+<p>This method copies a multi-dimensional array into the current object. </p> 
+
+<h4> Example : </h4>
+\precode
+// constructing a multi-dimensional array
+int m = 10, n = 4, p = 7, k = 6, j = 4;
+Array<double, 5> A(m, n, p, k, j);
+// filling A
+
+
+// then you can copy this array into B
+// you could also use operator =
+Array<double, 5> B;
+B.Copy(A);
+
+\endprecode
+
+
+<h4>Related topics : </h4>
+<p><a href="#operator">operator</a><br/>
+<a href="#constructor">constructor</a></p>
+
+
+<h4>Location :</h4>
+<p> Class Array<br/>
+Array.hxx Array.cxx</p>
+
+
+
+<div class="separator"><a name="Fill"></a></div>
+
+
+
+<h3>Fill</h3>
+
+<h4>Syntax :</h4>
+ <pre class="syntax-box">
+  void Fill()
+  void Fill(const T& x)
+</pre>
+
+<p>This method fills the multi-dimensional array with 0, 1, 2, ... or with a given value. </p> 
+
+<h4> Example : </h4>
+\precode
+// constructing a multi-dimensional array
+int m = 2, n = 2, p = 4, k = 3;
+Array<double, 4> A(m, n, p, k);
+// filling A with 0, 1, 2, ...
+A.Fill();
+// A should be equal to
+// A(0, 0, :, :) = |0, 1, 2|
+//                 |3, 4, 5|
+//                 |6, 7, 8|
+//                 |9, 10, 11|
+// A(0, 1, :, :) = |12, 13, 14|
+//                 |15, 16, 17|
+//                 |18, 19, 20|
+//                 |21, 22, 23|
+// A(1, 0, :, :) = |24, 25, 26|
+//                 |27, 28, 29|
+//                 |30, 31, 32|
+//                 |33, 34, 35|
+// A(1, 1, :, :) = |36, 37, 38|
+//                 |39, 40, 41|
+//                 |42, 43, 44|
+//                 |45, 46, 47|
+
+
+// you can also set all the entries to a same value
+A.Fill(1.0);
+// A should be equal to
+// A(0, 0, :, :) = |1, 1, 1|
+//                 |1, 1, 1|
+//                 |1, 1, 1|
+//                 |1, 1, 1|
+// and also A(0, 1, :, :), A(1, 0, :, :) and A(1, 1, :, :)
+
+\endprecode
+
+
+<h4>Related topics : </h4>
+<p><a href="#Zero">Zero</a><br/>
+<a href="#FillRand">FillRand</a></p>
+
+
+<h4>Location :</h4>
+<p> Class Array<br/>
+Array.hxx Array.cxx</p>
+
+
+
+<div class="separator"><a name="Zero"></a></div>
+
+
+
+<h3>Zero</h3>
+
+<h4>Syntax :</h4>
+ <pre class="syntax-box">
+  void Zero()
+</pre>
+
+<p>This method initializes all the entries to 0. </p> 
+
+<h4> Example : </h4>
+\precode
+// constructing a multi-dimensional array
+int m = 3, n = 2, p = 4, k = 5;
+Array<double, 4> A(m, n, p, k);
+// A is not initialized, for example you could set all
+// the values to 0
+A.Zero();
+
+\endprecode
+
+
+<h4>Related topics : </h4>
+<p><a href="#Fill">Fill</a><br/>
+<a href="#FillRand">FillRand</a></p>
+
+
+<h4>Location :</h4>
+<p> Class Array<br/>
+Array.hxx Array.cxx</p>
+
+
+
+<div class="separator"><a name="FillRand"></a></div>
+
+
+
+<h3>FillRand</h3>
+
+<h4>Syntax :</h4>
+ <pre class="syntax-box">
+  void FillRand()
+</pre>
+
+<p>This method fills the multi-dimensional array with random values. </p> 
+
+<h4> Example : </h4>
+\precode
+// constructing a multi-dimensional array
+int m = 3, n = 2, p = 4, k = 5;
+Array<double, 4> A(m, n, p, k);
+// A is not initialized, for example you could set 
+// randomly the values
+A.FillRand();
+
+\endprecode
+
+
+<h4>Related topics : </h4>
+<p><a href="#Fill">Fill</a><br/>
+<a href="#Zero">Zero</a></p>
+
+
+<h4>Location :</h4>
+<p> Class Array<br/>
+Array.hxx Array.cxx</p>
+
+
+
+<div class="separator"><a name="Print"></a></div>
+
+
+
+<h3>Print</h3>
+
+<h4>Syntax :</h4>
+ <pre class="syntax-box">
+  void Print()
+</pre>
+
+<p>This method displays the multi-dimensional array. </p> 
+
+<h4> Example : </h4>
+\precode
+// constructing a multi-dimensional array
+int m = 3, n = 2, p = 4, k = 5;
+Array<double, 4> A(m, n, p, k);
+A.FillRand();
+
+cout << "A = " << endl;
+A.Print();
+
+\endprecode
+
+
+<h4>Related topics : </h4>
+<p><a href="#Fill">Fill</a><br/>
+<a href="#Zero">Zero</a></p>
+
+
+<h4>Location :</h4>
+<p> Class Array<br/>
+Array.hxx Array.cxx</p>
+
+
+
+<div class="separator"><a name="Read"></a></div>
+
+
+
+<h3>Read</h3>
+
+<h4>Syntax :</h4>
+ <pre class="syntax-box">
+  void Read(string file_name);
+  void Read(istream& in);
+  void Read(string file_name, bool with_size);
+  void Read(istream& in, bool with_size);
+</pre>
+
+<p>This method reads a multi-dimensional array from a file or an input stream (binary format). If with_size is set to false, the dimensions of the multi-dimensional array are not read in the file. </p> 
+
+<h4> Example : </h4>
+\precode
+// constructing a multi-dimensional array
+int m = 3, n = 2, p = 4, k = 5;
+Array<double, 4> A(m, n, p, k), B;
+A.FillRand();
+
+// you can write it on a file
+A.Write("test.dat");
+
+// then read it
+B.Read("test.dat");
+
+\endprecode
+
+
+<h4>Related topics : </h4>
+<p><a href="#Write">Write</a><br/>
+<a href="#Reallocate">Reallocate</a></p>
+
+
+<h4>Location :</h4>
+<p> Class Array<br/>
+Array.hxx Array.cxx</p>
+
+
+
+<div class="separator"><a name="Write"></a></div>
+
+
+
+<h3>Write</h3>
+
+<h4>Syntax :</h4>
+ <pre class="syntax-box">
+  void Write(string file_name);
+  void Write(ostream& in);
+  void Write(string file_name, bool with_size);
+  void Write(ostream& in, bool with_size);
+</pre>
+
+<p>This method writes a multi-dimensional array in a file or in an input stream (binary format). If with_size is set to false, the dimensions of the multi-dimensional array are not written in the file. </p> 
+
+<h4> Example : </h4>
+\precode
+// constructing a multi-dimensional array
+int m = 3, n = 2, p = 4, k = 5;
+Array<double, 4> A(m, n, p, k), B;
+A.FillRand();
+
+// you can write it on a file
+A.Write("test.dat");
+
+// then read it
+B.Read("test.dat");
+
+\endprecode
+
+
+<h4>Related topics : </h4>
+<p><a href="#Read">Read</a><br/>
+<a href="#Reallocate">Reallocate</a></p>
+
+
+<h4>Location :</h4>
+<p> Class Array<br/>
+Array.hxx Array.cxx</p>
+
+*/

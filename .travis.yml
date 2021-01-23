@@ -1,0 +1,16 @@
+
+language: cpp
+
+os: linux
+
+addons:
+  apt:
+    sources:
+      - ubuntu-toolchain-r-test
+    packages:
+      - g++
+
+compiler: gcc
+
+script: 
+  - make rebuild

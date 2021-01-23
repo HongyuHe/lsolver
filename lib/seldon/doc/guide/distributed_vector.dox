@@ -1,0 +1,1016 @@
+/*! \file distributed_vector.dox
+    \brief Distributed vectors.
+*/
+
+/*!
+\page distributed_vector Distributed Vectors
+
+<p>An implementation of distributed vectors over several
+  processors is proposed. With this implementation, some rows can be shared
+   between processors. Each distributed vector contains a reference to a vector of integers that contain
+   row numbers that are already belonging to another processor. We consider that a row number is mainly
+   associated with a given processor, that is called original processor, and other processors that share this row number know that this row number belongs to the original processor. Since this array is given as a reference (several distributed vectors share the same array), a distributed vector must be constructed by giving this array as argument or with a constructor by copy. Usually, the use of distributed vectors is really only useful for iterative solvers. For such solvers, the functions DotProd, DotProdConj and Norm2 have been overloaded such that the iterative solvers can be used both in sequential (with Vector class) and in parallel (with DistributedVector class). For operations between distributed matrices and vectors, the distributed matrix contains all the informations needed to parallel computation, so that the user can give a usual vector (Vector class) for these functions.
+ </p>
+
+<h2> Basic use </h2>
+
+\precode
+// the flag SELDON_WITH_MPI can be defined during the compilation
+#define SELDON_WITH_MPI
+
+#ifdef SELDON_WITH_MPI
+#include "mpi.h"
+#endif
+
+// Seldon and SeldonDistributed must be included
+#include "Seldon.hxx"
+#include "SeldonDistributed.hxx"
+
+using namespace Seldon;
+
+// another solution, if you using the Makefile is to set USE_MPI = YES
+// and include only SeldonLib.hxx
+
+int main()
+{
+// on each processor, you specify dofs that are already treated by another processor
+// for example if the processor 0 handles rows [0, 3, 5, 6] and
+// processor 1 the rows [1 2, 4, 5, 7], the row 5 is already treated by
+// processor 0. Of course, if each row is treated by a processor and only one
+// this array should be left empty
+IVect OverlapRow;
+int n = 4;
+if (MPI::COMM_WORLD.Get_rank() == 1)
+  {
+    n = 5;
+    OverlapRow.Reallocate(1);
+    // be careful because OverlapRow stores local numbers
+    // here the global row 5 has a local number equal to 3 on processor 1
+    OverlapRow(0) = 3;
+  }
+
+// in the constructor, you need to provide this array and also the communicator 
+// (you can share a vector between the processors you want by
+// constructing the appropriate communicator)
+DistributedVector<double> U(OverlapRow, MPI::COMM_WORLD);
+
+// another solution is to use the copy constructor
+DistributedVector<double> V(U);
+
+// you can use all the methods of a classical vector
+U.Reallocate(n);
+U.Fill(1.3);
+V.FillRand();
+
+// functions DotProd, DotProdConj and Norm2 have been overloaded
+// so that iterative algorithms are working with distributed vectors
+// other functions have not been overloaded
+Real_wp scal = DotProd(U, V);
+}
+\endprecode
+
+<br/>
+
+<h2>Methods for distributed vectors : </h2>
+
+<table class="category-table">
+<tr class="category-table-tr-1">
+ <td class="category-table-td"><a href="#SetData">SetData </a></td> <td class="category-table-td"> sets the pointer storing the elements </td> </tr>
+<tr class="category-table-tr-2">
+ <td class="category-table-td"><a href="#GetNbOverlap">GetNbOverlap </a></td> <td class="category-table-td"> returns the numbers of rows already handled by another processor </td> </tr>
+<tr class="category-table-tr-1">
+<td class="category-table-td"><a href="#GetOverlapRow">GetOverlapRow </a></td> <td class="category-table-td"> returns a row number already handled by another processor </td> </tr>
+<tr class="category-table-tr-2">
+ <td class="category-table-td"><a href="#GetCommunicator">GetCommunicator </a></td> <td class="category-table-td"> returns the communicator associated with the distributed vector </td> </tr>
+</table>
+
+<br/>
+
+<h2>Functions for distributed vectors : </h2>
+
+<table class="category-table">
+<tr class="category-table-tr-2">
+ <td class="category-table-td"><a href="#DotProd"> DotProd </a></td> <td class="category-table-td"> returns the scalar product between distributed vectors </td> </tr>
+<tr class="category-table-tr-1">
+ <td class="category-table-td"><a href="#DotProdConj"> DotProdConj </a></td> <td class="category-table-td"> returns the scalar product between distributed vectors, the first one being conjugated </td> </tr>
+<tr class="category-table-tr-2">
+ <td class="category-table-td"><a href="#Norm2"> Norm2 </a></td> <td class="category-table-td"> returns the euclidian norm of a distributed vector </td> </tr>
+<tr class="category-table-tr-1">
+ <td class="category-table-td"><a href="#AssembleVectorMin"> AssembleVectorMin </a></td> <td class="category-table-td"> Assembles a distributed vector by taking the minimum of two arrays </td> </tr>
+<tr class="category-table-tr-2">
+ <td class="category-table-td"><a href="#AssembleVector"> AssembleVector </a></td> <td class="category-table-td"> Assembles a distributed vector </td> </tr>
+<tr class="category-table-tr-1">
+ <td class="category-table-td"><a href="#ExchangeVector"> ExchangeVector </a></td> <td class="category-table-td"> Exchanges values shared by processors </td> </tr>
+<tr class="category-table-tr-2">
+ <td class="category-table-td"><a href="#ExchangeRelaxVector"> ExchangeRelaxVector </a></td> <td class="category-table-td"> Exchanges with relaxation values shared by processors </td> </tr>
+  </table>
+
+<br/>
+
+<div class="separator"><a name="SetData"></a></div>
+
+
+
+<h3>SetData</h3>
+
+<h4>Syntax</h4>
+ <pre class="syntax-box">
+   void SetData(Vector&lt;T&gt;);
+   void SetData(int, T*);
+</pre>
+
+<p>
+This method sets the pointer storing the elements contained in the
+vector. It can use the pointer stored in a vector.
+</p>
+
+
+<h4>Example : </h4>
+\precode
+  IVect OverlapRow
+  DistributedVector<double> v(OverlapRow, MPI::COMM_WORLD);
+  Vector<double> vloc;
+
+  // you can fill vloc
+  vloc.Reallocate(5);
+  vloc.FillRand();
+
+  // then use vloc to set v, vloc is nullified
+  v.SetData(vloc);
+\endprecode
+
+
+<h4>Location :</h4>
+<p>Class <code>DistributedVector</code><br/>
+DistributedVector.hxx<br/>
+DistributedVectorInline.cxx<br/>
+DistributedVector.cxx<br/>
+</p>
+
+
+
+<div class="separator"><a name="GetNbOverlap"></a></div>
+
+
+
+<h3>GetNbOverlap</h3>
+
+<h4>Syntax</h4>
+ <pre class="syntax-box">
+  int GetNbOverlap() const;
+</pre>
+
+<p>
+This method returns the number of rows already treated by another processor. Each row is considered to belong to an "original" processor, other processors may share this row, and this will increment the number of overlapped rows. 
+</p>
+
+
+<h4>Example : </h4>
+\precode
+// for example if the processor 0 handles rows [0, 3, 5, 6] and
+// processor 1 the rows [1 2, 4, 5, 7], the row 5 is already treated by
+// processor 0 :
+IVect OverlapRow;
+int n = 4;
+if (MPI::COMM_WORLD.Get_rank() == 1)
+  {
+    n = 5;
+    OverlapRow.Reallocate(1);
+    // be careful because OverlapRow stores local numbers
+    // here the global row 5 has a local number equal to 3 on processor 1
+    OverlapRow(0) = 3;
+  }
+
+DistributedVector<double> U(OverlapRow, MPI::COMM_WORLD);
+
+// processor 0 should display 0, processor 1 should display 1
+cout << "Number of overlapped rows : " << U.GetNbOverlap() << endl;
+\endprecode
+
+
+<h4>Location :</h4>
+<p>Class <code>DistributedVector</code><br/>
+DistributedVector.hxx<br/>
+DistributedVectorInline.cxx<br/>
+DistributedVector.cxx<br/>
+</p>
+
+
+
+<div class="separator"><a name="GetOverlapRow"></a></div>
+
+
+
+<h3>GetOverlapRow</h3>
+
+<h4>Syntax</h4>
+ <pre class="syntax-box">
+  int GetOverlapRow(int );
+</pre>
+
+<p>
+This method returns the i-th row number already treated by another processor. Each row is considered to belong to an "original" processor, other processors may share this row, and the number of these overlapped rows are stored in an array, that can be retrieved by calling this function. 
+</p>
+
+
+<h4>Example : </h4>
+\precode
+// for example if the processor 0 handles rows [0, 3, 5, 6] and
+// processor 1 the rows [1 2, 4, 5, 7], the row 5 is already treated by
+// processor 0 :
+IVect OverlapRow;
+int n = 4;
+if (MPI::COMM_WORLD.Get_rank() == 1)
+  {
+    n = 5;
+    OverlapRow.Reallocate(1);
+    // be careful because OverlapRow stores local numbers
+    // here the global row 5 has a local number equal to 3 on processor 1
+    OverlapRow(0) = 3;
+  }
+
+DistributedVector<double> U(OverlapRow, MPI::COMM_WORLD);
+
+// returns the overlapped row number 0 (it should return 3)
+int r = U.GetOverlapRow(0);
+\endprecode
+
+
+<h4>Location :</h4>
+<p>Class <code>DistributedVector</code><br/>
+DistributedVector.hxx<br/>
+DistributedVectorInline.cxx<br/>
+DistributedVector.cxx<br/>
+</p>
+
+
+
+<div class="separator"><a name="GetCommunicator"></a></div>
+
+
+
+<h3>GetCommunicator</h3>
+
+<h4>Syntax</h4>
+ <pre class="syntax-box">
+  MPI::Comm&amp; GetCommunicator();
+</pre>
+
+<p>
+This method returns the MPI communicator used to distribute the vector
+or the matrix.
+</p>
+
+
+<h4>Example : </h4>
+\precode
+// for example if the processor 0 handles rows [0, 3, 5, 6] and
+// processor 1 the rows [1 2, 4, 5, 7], the row 5 is already treated by
+// processor 0 :
+IVect OverlapRow;
+int n = 4;
+if (MPI::COMM_WORLD.Get_rank() == 1)
+  {
+    n = 5;
+    OverlapRow.Reallocate(1);
+    // be careful because OverlapRow stores local numbers
+    // here the global row 5 has a local number equal to 3 on processor 1
+    OverlapRow(0) = 3;
+  }
+
+DistributedVector<double> U(OverlapRow, MPI::COMM_WORLD);
+
+// returns the communicator (here it should return MPI::COMM_WORLD)
+MPI::Comm& comm = U.GetCommunicator();
+\endprecode
+
+
+<h4>Location :</h4>
+<p>Class <code>DistributedVector</code><br/>
+DistributedVector.hxx<br/>
+DistributedVectorInline.cxx<br/>
+DistributedVector.cxx<br/>
+</p>
+
+
+
+<div class="separator"><a name="DotProd"></a></div>
+
+
+
+<h3>DotProd</h3>
+
+<h4>Syntax</h4>
+ <pre class="syntax-box">
+ T DotProd(const DistributedVector&lt;T&gt;&amp;, const DistributedVector&lt;T&gt;&amp;);
+</pre>
+
+<p>
+This method returns the scalar product between two distributed
+vectors. It is assumed that the values for shared rows are the same.
+ The result of this function is the same for all processors of the MPI communicator.
+</p>
+
+
+<h4>Example : </h4>
+\precode
+// for example if the processor 0 handles rows [0, 3, 5, 6] and
+// processor 1 the rows [1 2, 4, 5, 7], the row 5 is already treated by
+// processor 0 :
+IVect OverlapRow;
+int n = 4;
+if (MPI::COMM_WORLD.Get_rank() == 1)
+  {
+    n = 5;
+    OverlapRow.Reallocate(1);
+    // be careful because OverlapRow stores local numbers
+    // here the global row 5 has a local number equal to 3 on processor 1
+    OverlapRow(0) = 3;
+  }
+
+DistributedVector<double> U(OverlapRow, MPI::COMM_WORLD), V(OverlapRow, MPI::COMM_WORLD);
+
+U.Reallocate(n);
+V.Reallocate(n);
+
+// you notice that the value for global row 5 is the same
+// for the two processors (2.5 for U and 1.7 for V)
+if (MPI::COMM_WORLD.Get_rank() == 0)
+  {
+    U(0) = -2.2; U(1) = 0.8; U(2) = 2.5; U(3) = 1.2;
+    V(0) = -2.9; V(1) = 0.4; V(2) = 1.7; V(3) = 0.9;
+  }
+else
+  {
+    U(0) = 0.7; U(1) = 1.5; U(2) = 2.3; U(3) = 2.5; U(4) = -1.6;
+    V(0) = 1.1; V(1) = 1.8; V(2) = -3.1; V(3) = 1.7; V(4) = -2.8;
+}
+
+// the result will be the same for the two processors
+// and equal to 2.2 x 2.9 + 0.7 x 1.1 + 1.5 x 1.8 + 0.8 x 0.4 + 2.3 x -3.1 + 2.5 x 1.7 + 1.2 x 0.9 + 1.6 x 2.8
+double res = DotProd(U, V);
+\endprecode
+
+
+<h4>Location :</h4>
+<p>Class <code>DistributedVector</code><br/>
+DistributedVector.hxx<br/>
+DistributedVectorInline.cxx<br/>
+DistributedVector.cxx<br/>
+</p>
+
+
+
+<div class="separator"><a name="DotProdConj"></a></div>
+
+
+
+<h3>DotProdConj</h3>
+
+<h4>Syntax</h4>
+ <pre class="syntax-box">
+ T DotProdConj(const DistributedVector&lt;T&gt;&amp;, const DistributedVector&lt;T&gt;&amp;);
+</pre>
+
+<p>
+This method returns the scalar product between two distributed
+vectors, the first one being conjugated. It is assumed that the values for shared rows are the same. The result of this function is the same for all processors of the MPI communicator.
+</p>
+
+
+<h4>Example : </h4>
+\precode
+// for example if the processor 0 handles rows [0, 3, 5, 6] and
+// processor 1 the rows [1 2, 4, 5, 7], the row 5 is already treated by
+// processor 0 :
+IVect OverlapRow;
+int n = 4;
+if (MPI::COMM_WORLD.Get_rank() == 1)
+  {
+    n = 5;
+    OverlapRow.Reallocate(1);
+    // be careful because OverlapRow stores local numbers
+    // here the global row 5 has a local number equal to 3 on processor 1
+    OverlapRow(0) = 3;
+  }
+
+DistributedVector<complex<double>> U(OverlapRow, MPI::COMM_WORLD), V(OverlapRow, MPI::COMM_WORLD);
+
+U.Reallocate(n);
+V.Reallocate(n);
+
+// you notice that the value for global row 5 is the same
+// for the two processors ((2.5, 0.3) for U and (1.7, 0.4) for V)
+if (MPI::COMM_WORLD.Get_rank() == 0)
+  {
+    U(0) = -2.2; U(1) = 0.8; U(2) = complex<double>(2.5, 0.3); U(3) = 1.2;
+    V(0) = -2.9; V(1) = 0.4; V(2) = complex<double>(1.7, 0.4); V(3) = 0.9;
+  }
+else
+  {
+    U(0) = 0.7; U(1) = 1.5; U(2) = 2.3; U(3) = complex<double>(2.5, 0.3); U(4) = -1.6;
+    V(0) = 1.1; V(1) = 1.8; V(2) = -3.1; V(3) = complex<double>(1.7, 0.4); V(4) = -2.8;
+  }
+
+// the result will be the same for the two processors
+// and equal to 2.2 x 2.9 + 0.7 x 1.1 + 1.5 x 1.8 + 0.8 x 0.4 + 2.3 x -3.1 + (2.5-0.3i) x (1.7+0.4i) + 1.2 x 0.9 + 1.6 x 2.8
+double res = DotProdConj(U, V);
+\endprecode
+
+
+<h4>Location :</h4>
+<p>Class <code>DistributedVector</code><br/>
+DistributedVector.hxx<br/>
+DistributedVectorInline.cxx<br/>
+DistributedVector.cxx<br/>
+</p>
+
+
+
+<div class="separator"><a name="Norm2"></a></div>
+
+
+
+<h3>Norm2</h3>
+
+<h4>Syntax</h4>
+ <pre class="syntax-box">
+ Treal Norm2(const DistributedVector&lt;T&gt;&amp;);
+</pre>
+
+<p>
+This method returns the euclidian norm. It is assumed that the values
+for shared rows are the same. The result of this function is the same for all processors of the MPI communicator.
+</p>
+
+
+<h4>Example : </h4>
+\precode
+// for example if the processor 0 handles rows [0, 3, 5, 6] and
+// processor 1 the rows [1 2, 4, 5, 7], the row 5 is already treated by
+// processor 0 :
+IVect OverlapRow;
+int n = 4;
+if (MPI::COMM_WORLD.Get_rank() == 1)
+  {
+    n = 5;
+    OverlapRow.Reallocate(1);
+    // be careful because OverlapRow stores local numbers
+    // here the global row 5 has a local number equal to 3 on processor 1
+    OverlapRow(0) = 3;
+  }
+
+DistributedVector<double> U(OverlapRow, MPI::COMM_WORLD);
+
+U.Reallocate(n);
+
+// you notice that the value for global row 5 is the same
+// for the two processors (2.5 for U)
+if (MPI::COMM_WORLD.Get_rank() == 0)
+  {
+    U(0) = -2.2; U(1) = 0.8; U(2) = 2.5; U(3) = 1.2;
+  }
+else
+  {
+    U(0) = 0.7; U(1) = 1.5; U(2) = 2.3; U(3) = 2.5; U(4) = -1.6;
+  }
+
+// the result will be the same for the two processors
+// and equal to sqrt(2.2 x 2.2 + 0.7 x 0.7 + 1.5 x 1.5 + 0.8 x 0.8 + 2.3 x 2.3 + 2.5 x 2.5 + 1.2 x 1.2 + 1.6 x 1.6)
+double res = Norm2(U);
+\endprecode
+
+
+<h4>Location :</h4>
+<p>Class <code>DistributedVector</code><br/>
+DistributedVector.hxx<br/>
+DistributedVectorInline.cxx<br/>
+DistributedVector.cxx<br/>
+</p>
+
+
+
+<div class="separator"><a name="AssembleVectorMin"></a></div>
+
+
+
+<h3>AssembleVectorMin</h3>
+
+<h4>Syntax</h4>
+ <pre class="syntax-box">
+ void AssembleVectorMin(IVect&amp; x, IVect&amp; x_proc, const IVect&amp; proc_number, const Vector&lt;IVect&gt;&amp; dof_number, const MPI::Comm&amp; comm, int Nvol, int nb_u, int tag);
+</pre>
+
+<p>
+This method performs a reduction for the couple (x, x_proc) in order to
+store the minimum. It takes the lowest value for x_proc, then if there
+are two equal values, it takes the lowest value for x. Only rows
+shared between processors are affected by this
+procedure. proc_number/dof_number contains the local row numbers
+shared with other processors. Nvol is the number of rows for each
+scalar component, nb_u the number of scalar components, tag the tag
+number used in MPI communications. For each scalar component, it is
+assumed that the same row numbers are involved, that's why you can
+provide dof_number/proc_number only for this first unknown, and
+numbers for other components are obtained as m*Nvol + i where m is the
+component number and i the row number.
+</p>
+
+
+<h4>Example : </h4>
+\precode
+// for example, processor 0 owns columns (0, 2, 3, 6, 7, 8)
+// processor 1 columns (1, 2, 4, 5, 7, 8)
+// processor 2 columns (3, 4, 6, 8)
+IVect OverlapRow, proc_number, dof_number;
+int nglob = 9, nloc;
+// proc_number contains the processors that interact with the current processor
+// dof_number(i) contains the local rows that are shared with processor i
+// it is assumed that these numbers are "sorted", such that dof_number(i) on processor j correspond to dof_number(j) on processor i
+proc_number.Reallocate(2);
+dof_number.Reallocate(2);
+if (MPI::COMM_WORLD.Get_rank() == 1)
+  {
+    nloc = 6;
+    OverlapRow.Reallocate(3);
+    // be careful because OverlapRow stores local numbers
+    // here the global row 2 has a local number equal to 1 on processor 1
+    OverlapRow(0) = 1; OverlapRow(1) = 4; OverlapRow(2) = 5;
+   
+    // global rows 2, 7, 8 are shared with processor 0
+    // as for OverlapRow, local numbers are stored
+    proc_number(0) = 0;
+    dof_number(0).Reallocate(3);
+    dof_number(0)(0) = 1; dof_number(0)(1) = 4; dof_number(0)(2) = 5;
+
+    // and global rows 4 and 8 are shared with processor 2
+    proc_number(1) = 2;
+    dof_number(1).Reallocate(2);
+    dof_number(1)(0) = 2; dof_number(1)(1) = 5;
+  }
+else if (MPI::COMM_WORLD.Get_rank() == 2)
+  {
+    nloc = 4;
+    // global rows 3, 4, 6, 8 are shared with processors 0 and 1
+    OverlapRow.Reallocate(4);
+    OverlapRow(0) = 0; OverlapRow(1) = 1; OverlapRow(2) = 2; OverlapRow(3) = 3;
+
+    // global rows 3, 6 and 8 are shared with processor 0
+    proc_number(0) = 0;
+    dof_number(0).Reallocate(3);
+    dof_number(0)(0) = 0; dof_number(0)(1) = 2; dof_number(0)(2) = 3;
+
+    // global rows 4 and 8 are shared with processor 1
+    proc_number(1) = 1;
+    dof_number(1).Reallocate(2);
+    dof_number(1)(0) = 1; dof_number(1)(1) = 3;
+  }
+else
+  {
+    nloc = 6;
+    proc_number(0) = 1;
+    // global rows 2, 7 and 8 are shared with processor 1
+    dof_number(0).Reallocate(3);
+    dof_number(0)(0) = 1; dof_number(0)(1) = 4; dof_number(0)(2) = 5; 
+
+    // global rows 3, 6 and 8 are shared with processor 1
+    dof_number(1).Reallocate(3);
+    dof_number(1)(0) = 2; dof_number(1)(1) = 3; dof_number(1)(2) = 5; 
+  }
+
+// each processor constructs the arrays x and x_proc
+IVect x(nloc), x_proc(nloc);
+
+if (MPI::COMM_WORLD.Get_rank() == 0)
+  {
+    x(0) = 12;  x(1) = 9;  x(2) = 4;  x(3) = 5;  x(4) = 13;  x(5) = 7; 
+    x_proc(0) = 0; x_proc(1) = 0; x_proc(2) = 2; x_proc(3) = 2; x_proc(4) = 0; x_proc(5) = 2;
+  }
+else if (MPI::COMM_WORLD.Get_rank() == 1)
+  {
+    x(0) = 8;  x(1) = 6;  x(2) = 11;  x(3) = 5;  x(4) = 3;  x(5) = 9; 
+    x_proc(0) = 1; x_proc(1) = 0; x_proc(2) = 2; x_proc(3) = 1; x_proc(4) = 1; x_proc(5) = 1;
+  }
+else
+  {
+    x(0) = 7;  x(1) = 8;  x(2) = 9;  x(3) = 4; 
+    x_proc(0) = 1; x_proc(1) = 0; x_proc(2) = 2; x_proc(3) = 2;
+  }
+
+// then the minimum (x_proc, x) is searched
+AssembleVectorMin(x, x_proc, proc_number, dof_number, MPI::COMM_WORLD, nloc, 1, 1);
+
+// the global result should be
+// x =      (12, 8, 6, 2, 5, 5, 5, 13, 9)
+// x_proc = (0, 0, 0, 1, 2, 1, 2, 0, 1)
+
+// on processor 0:
+// x = (12, 6, 7, 5, 13, 9)
+// x_proc = (0, 0, 1, 2, 0, 1)
+
+// on processor 1:
+// x = (8, 6, 8, 5, 13, 9)
+// x_proc = (1, 0, 0, 1, 0, 1)
+
+// on processor 2:
+// x = (7, 8, 5, 9)
+// x_proc = (1, 0, 2, 1)
+\endprecode
+
+
+<h4>Location :</h4>
+<p>Class <code>DistributedVector</code><br/>
+DistributedVector.hxx<br/>
+DistributedVectorInline.cxx<br/>
+DistributedVector.cxx<br/>
+</p>
+
+
+
+<div class="separator"><a name="AssembleVector"></a></div>
+
+
+
+<h3>AssembleVector</h3>
+
+<h4>Syntax</h4>
+ <pre class="syntax-box">
+ void AssembleVector(Vector&lt;T&gt;&amp; x, const MPI::Op&amp; oper, const IVect&amp; proc_number, const Vector&lt;IVect&gt;&amp; dof_number, const MPI::Comm&amp; comm, int Nvol, int nb_u, int tag);
+</pre>
+
+<p>
+This method performs a reduction for the vector x in order to
+store the sum/minimum or maximum (depending on the operation specified
+as oper) of values associated with shared rows. Only rows
+shared between processors are affected by this
+procedure. proc_number/dof_number contains the local row numbers
+shared with other processors. Nvol is the number of rows for each
+scalar component, nb_u the number of scalar components, tag the tag
+number used in MPI communications. For each scalar component, it is
+assumed that the same row numbers are involved, that's why you can
+provide dof_number/proc_number only for this first unknown, and
+numbers for other components are obtained as m*Nvol + i where m is the
+component number and i the row number.
+</p>
+
+
+<h4>Example : </h4>
+\precode
+// for example, processor 0 owns columns (0, 2, 3, 6, 7, 8)
+// processor 1 columns (1, 2, 4, 5, 7, 8)
+// processor 2 columns (3, 4, 6, 8)
+IVect OverlapRow, proc_number, dof_number;
+int nglob = 9, nloc;
+// proc_number contains the processors that interact with the current processor
+// dof_number(i) contains the local rows that are shared with processor i
+// it is assumed that these numbers are "sorted", such that dof_number(i) on processor j correspond to dof_number(j) on processor i
+proc_number.Reallocate(2);
+dof_number.Reallocate(2);
+if (MPI::COMM_WORLD.Get_rank() == 1)
+  {
+    nloc = 6;
+    OverlapRow.Reallocate(3);
+    // be careful because OverlapRow stores local numbers
+    // here the global row 2 has a local number equal to 1 on processor 1
+    OverlapRow(0) = 1; OverlapRow(1) = 4; OverlapRow(2) = 5;
+   
+    // global rows 2, 7, 8 are shared with processor 0
+    // as for OverlapRow, local numbers are stored
+    proc_number(0) = 0;
+    dof_number(0).Reallocate(3);
+    dof_number(0)(0) = 1; dof_number(0)(1) = 4; dof_number(0)(2) = 5;
+
+    // and global rows 4 and 8 are shared with processor 2
+    proc_number(1) = 2;
+    dof_number(1).Reallocate(2);
+    dof_number(1)(0) = 2; dof_number(1)(1) = 5;
+  }
+else if (MPI::COMM_WORLD.Get_rank() == 2)
+  {
+    nloc = 4;
+    // global rows 3, 4, 6, 8 are shared with processors 0 and 1
+    OverlapRow.Reallocate(4);
+    OverlapRow(0) = 0; OverlapRow(1) = 1; OverlapRow(2) = 2; OverlapRow(3) = 3;
+
+    // global rows 3, 6 and 8 are shared with processor 0
+    proc_number(0) = 0;
+    dof_number(0).Reallocate(3);
+    dof_number(0)(0) = 0; dof_number(0)(1) = 2; dof_number(0)(2) = 3;
+
+    // global rows 4 and 8 are shared with processor 1
+    proc_number(1) = 1;
+    dof_number(1).Reallocate(2);
+    dof_number(1)(0) = 1; dof_number(1)(1) = 3;
+  }
+else
+  {
+    nloc = 6;
+    proc_number(0) = 1;
+    // global rows 2, 7 and 8 are shared with processor 1
+    dof_number(0).Reallocate(3);
+    dof_number(0)(0) = 1; dof_number(0)(1) = 4; dof_number(0)(2) = 5; 
+
+    // global rows 3, 6 and 8 are shared with processor 1
+    dof_number(1).Reallocate(3);
+    dof_number(1)(0) = 2; dof_number(1)(1) = 3; dof_number(1)(2) = 5; 
+  }
+
+// each processor constructs the array x
+IVect x(nloc);
+if (MPI::COMM_WORLD.Get_rank() == 0)
+  {
+    x(0) = 12;  x(1) = 9;  x(2) = 4;  x(3) = 5;  x(4) = 13;  x(5) = 7; 
+  }
+else if (MPI::COMM_WORLD.Get_rank() == 1)
+  {
+    x(0) = 8;  x(1) = 6;  x(2) = 11;  x(3) = 5;  x(4) = 3;  x(5) = 9; 
+  }
+else
+  {
+    x(0) = 7;  x(1) = 8;  x(2) = 9;  x(3) = 4; 
+  }
+
+// then if MPI::SUM is required, values are added
+AssembleVector(x, MPI::SUM, proc_number, dof_number, MPI::COMM_WORLD, nloc, 1, 1);
+
+// the global result should be
+// x =      (12, 8, 15, 11, 19, 5, 14, 16, 20)
+
+// on processor 0:
+// x = (12, 15, 11, 14, 16, 20)
+
+// on processor 1:
+// x = (8, 15, 19, 5, 16, 20)
+
+// on processor 2:
+// x = (11, 19, 14, 20)
+\endprecode
+
+
+<h4>Location :</h4>
+<p>Class <code>DistributedVector</code><br/>
+DistributedVector.hxx<br/>
+DistributedVectorInline.cxx<br/>
+DistributedVector.cxx<br/>
+</p>
+
+
+
+<div class="separator"><a name="ExchangeVector"></a></div>
+
+
+
+<h3>ExchangeVector</h3>
+
+<h4>Syntax</h4>
+ <pre class="syntax-box">
+ void ExchangeVector(Vector&lt;T&gt;&amp; x, const IVect&amp; proc_number, const Vector&lt;IVect&gt;&amp; dof_number, const MPI::Comm&amp; comm, int Nvol, int nb_u, int tag);
+</pre>
+
+<p>
+This method performs an exchange for the vector x in order to
+store the (depending on the operation specified
+as oper) values associated with shared rows are exchanged between processors. Only rows
+shared between processors are affected by this
+procedure. proc_number/dof_number contains the local row numbers
+shared with other processors. Nvol is the number of rows for each
+scalar component, nb_u the number of scalar components, tag the tag
+number used in MPI communications. For each scalar component, it is
+assumed that the same row numbers are involved, that's why you can
+provide dof_number/proc_number only for this first unknown, and
+numbers for other components are obtained as m*Nvol + i where m is the
+component number and i the row number.
+</p>
+
+
+<h4>Example : </h4>
+\precode
+// for example, processor 0 owns columns (0, 2, 3, 6, 7, 8)
+// processor 1 columns (1, 2, 4, 5, 7, 8)
+// processor 2 columns (3, 4, 6, 8)
+IVect OverlapRow, proc_number, dof_number;
+int nglob = 9, nloc;
+// proc_number contains the processors that interact with the current processor
+// dof_number(i) contains the local rows that are shared with processor i
+// it is assumed that these numbers are "sorted", such that dof_number(i) on processor j correspond to dof_number(j) on processor i
+proc_number.Reallocate(2);
+dof_number.Reallocate(2);
+if (MPI::COMM_WORLD.Get_rank() == 1)
+  {
+    nloc = 6;
+    OverlapRow.Reallocate(3);
+    // be careful because OverlapRow stores local numbers
+    // here the global row 2 has a local number equal to 1 on processor 1
+    OverlapRow(0) = 1; OverlapRow(1) = 4; OverlapRow(2) = 5;
+   
+    // global rows 2, 7, 8 are shared with processor 0
+    // as for OverlapRow, local numbers are stored
+    proc_number(0) = 0;
+    dof_number(0).Reallocate(3);
+    dof_number(0)(0) = 1; dof_number(0)(1) = 4; dof_number(0)(2) = 5;
+
+    // and global rows 4 and 8 are shared with processor 2
+    proc_number(1) = 2;
+    dof_number(1).Reallocate(2);
+    dof_number(1)(0) = 2; dof_number(1)(1) = 5;
+  }
+else if (MPI::COMM_WORLD.Get_rank() == 2)
+  {
+    nloc = 4;
+    // global rows 3, 4, 6, 8 are shared with processors 0 and 1
+    OverlapRow.Reallocate(4);
+    OverlapRow(0) = 0; OverlapRow(1) = 1; OverlapRow(2) = 2; OverlapRow(3) = 3;
+
+    // global rows 3, 6 and 8 are shared with processor 0
+    proc_number(0) = 0;
+    dof_number(0).Reallocate(3);
+    dof_number(0)(0) = 0; dof_number(0)(1) = 2; dof_number(0)(2) = 3;
+
+    // global rows 4 and 8 are shared with processor 1
+    proc_number(1) = 1;
+    dof_number(1).Reallocate(2);
+    dof_number(1)(0) = 1; dof_number(1)(1) = 3;
+  }
+else
+  {
+    nloc = 6;
+    proc_number(0) = 1;
+    // global rows 2, 7 and 8 are shared with processor 1
+    dof_number(0).Reallocate(3);
+    dof_number(0)(0) = 1; dof_number(0)(1) = 4; dof_number(0)(2) = 5; 
+
+    // global rows 3, 6 and 8 are shared with processor 1
+    dof_number(1).Reallocate(3);
+    dof_number(1)(0) = 2; dof_number(1)(1) = 3; dof_number(1)(2) = 5; 
+  }
+
+// each processor constructs the array x
+IVect x(nloc);
+if (MPI::COMM_WORLD.Get_rank() == 0)
+  {
+    x(0) = 12;  x(1) = 9;  x(2) = 4;  x(3) = 5;  x(4) = 13;  x(5) = 7; 
+  }
+else if (MPI::COMM_WORLD.Get_rank() == 1)
+  {
+    x(0) = 8;  x(1) = 6;  x(2) = 11;  x(3) = 5;  x(4) = 3;  x(5) = 9; 
+  }
+else
+  {
+    x(0) = 7;  x(1) = 8;  x(2) = 9;  x(3) = 4; 
+  }
+
+// then if MPI::SUM is required, values are added
+ExchangeVector(x, MPI::SUM, proc_number, dof_number, MPI::COMM_WORLD, nloc, 1, 1);
+
+// the global result is not defined, since each processor has different values
+
+// on processor 0:
+// x = (12, 6, 7, 9, 3, 4)
+
+// on processor 1:
+// x = (8, 9, 8, 5, 13, 4)
+
+// on processor 2:
+// x = (4, 11, 5, 9)
+\endprecode
+
+
+<h4>Location :</h4>
+<p>Class <code>DistributedVector</code><br/>
+DistributedVector.hxx<br/>
+DistributedVectorInline.cxx<br/>
+DistributedVector.cxx<br/>
+</p>
+
+
+
+<div class="separator"><a name="ExchangeRelaxVector"></a></div>
+
+
+
+<h3>ExchangeRelaxVector</h3>
+
+<h4>Syntax</h4>
+ <pre class="syntax-box">
+ void ExchangeRelaxVector(Vector&lt;T&gt;&amp; x, const Treal&amp; omega, int proc,
+                          const IVect&amp; proc_number, const Vector&lt;IVect&gt;&amp; dof_number, const MPI::Comm&amp; comm, int Nvol, int nb_u, int tag);
+</pre>
+
+<p>
+The processor proc sends its values to other processors. The other
+processors perform a relaxation process
+between the old value already present and the new value received. Only rows
+shared between processors are affected by this
+procedure. proc_number/dof_number contains the local row numbers
+shared with other processors. Nvol is the number of rows for each
+scalar component, nb_u the number of scalar components, tag the tag
+number used in MPI communications. For each scalar component, it is
+assumed that the same row numbers are involved, that's why you can
+provide dof_number/proc_number only for this first unknown, and
+numbers for other components are obtained as m*Nvol + i where m is the
+component number and i the row number.
+</p>
+
+
+<h4>Example : </h4>
+\precode
+// for example, processor 0 owns columns (0, 2, 3, 6, 7, 8)
+// processor 1 columns (1, 2, 4, 5, 7, 8)
+// processor 2 columns (3, 4, 6, 8)
+IVect OverlapRow, proc_number, dof_number;
+int nglob = 9, nloc;
+// proc_number contains the processors that interact with the current processor
+// dof_number(i) contains the local rows that are shared with processor i
+// it is assumed that these numbers are "sorted", such that dof_number(i) on processor j correspond to dof_number(j) on processor i
+proc_number.Reallocate(2);
+dof_number.Reallocate(2);
+if (MPI::COMM_WORLD.Get_rank() == 1)
+  {
+    nloc = 6;
+    OverlapRow.Reallocate(3);
+    // be careful because OverlapRow stores local numbers
+    // here the global row 2 has a local number equal to 1 on processor 1
+    OverlapRow(0) = 1; OverlapRow(1) = 4; OverlapRow(2) = 5;
+   
+    // global rows 2, 7, 8 are shared with processor 0
+    // as for OverlapRow, local numbers are stored
+    proc_number(0) = 0;
+    dof_number(0).Reallocate(3);
+    dof_number(0)(0) = 1; dof_number(0)(1) = 4; dof_number(0)(2) = 5;
+
+    // and global rows 4 and 8 are shared with processor 2
+    proc_number(1) = 2;
+    dof_number(1).Reallocate(2);
+    dof_number(1)(0) = 2; dof_number(1)(1) = 5;
+  }
+else if (MPI::COMM_WORLD.Get_rank() == 2)
+  {
+    nloc = 4;
+    // global rows 3, 4, 6, 8 are shared with processors 0 and 1
+    OverlapRow.Reallocate(4);
+    OverlapRow(0) = 0; OverlapRow(1) = 1; OverlapRow(2) = 2; OverlapRow(3) = 3;
+
+    // global rows 3, 6 and 8 are shared with processor 0
+    proc_number(0) = 0;
+    dof_number(0).Reallocate(3);
+    dof_number(0)(0) = 0; dof_number(0)(1) = 2; dof_number(0)(2) = 3;
+
+    // global rows 4 and 8 are shared with processor 1
+    proc_number(1) = 1;
+    dof_number(1).Reallocate(2);
+    dof_number(1)(0) = 1; dof_number(1)(1) = 3;
+  }
+else
+  {
+    nloc = 6;
+    proc_number(0) = 1;
+    // global rows 2, 7 and 8 are shared with processor 1
+    dof_number(0).Reallocate(3);
+    dof_number(0)(0) = 1; dof_number(0)(1) = 4; dof_number(0)(2) = 5; 
+
+    // global rows 3, 6 and 8 are shared with processor 1
+    dof_number(1).Reallocate(3);
+    dof_number(1)(0) = 2; dof_number(1)(1) = 3; dof_number(1)(2) = 5; 
+  }
+
+// each processor constructs the array x
+Vector<double> x(nloc);
+if (MPI::COMM_WORLD.Get_rank() == 0)
+  {
+    x(0) = 12;  x(1) = 9;  x(2) = 4;  x(3) = 5;  x(4) = 13;  x(5) = 7; 
+  }
+else if (MPI::COMM_WORLD.Get_rank() == 1)
+  {
+    x(0) = 8;  x(1) = 6;  x(2) = 11;  x(3) = 5;  x(4) = 3;  x(5) = 9; 
+  }
+else
+  {
+    x(0) = 7;  x(1) = 8;  x(2) = 9;  x(3) = 4; 
+  }
+
+// then for example, processor 0 can send its values
+ExchangeRelaxVector(x, double(0.5), 0, proc_number, dof_number, MPI::COMM_WORLD, nloc, 1, 1);
+
+// the global result is not defined, since each processor has different values
+
+// on processor 0:
+// (not modified since this processor only sends values)
+// x = (12, 9, 4, 5, 13, 7)
+
+// on processor 1:
+// x = (8, 7.5, 11, 5, 8, 8)
+
+// on processor 2:
+// x = (5.5, 8, 7, 5.5)
+\endprecode
+
+
+<h4>Location :</h4>
+<p>Class <code>DistributedVector</code><br/>
+DistributedVector.hxx<br/>
+DistributedVectorInline.cxx<br/>
+DistributedVector.cxx<br/>
+</p>
+
+
+*/

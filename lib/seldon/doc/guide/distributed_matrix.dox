@@ -1,0 +1,4258 @@
+/*! \file distributed_matrix.dox
+    \brief Distributed matrices.
+*/
+
+/*!
+\page distributed_matrix Distributed Matrices
+
+<p>An implementation of distributed over several
+  processors is proposed. It can be used to solve large linear systems
+  with direct solvers (Mumps, SuperLU and Pastix are interfaced), or iterative
+  solvers (all iteratives solvers provided in Seldon are
+  compliant). Only
+  square matrices (same number of rows and columns) are currently supported. Unitary tests for this class
+   are present in the file test/unit/distributed_matrix_test.cc. This file must be compiled with the option USE_MPI := YES (in the Makefile), and executed with at least two processors (mpirun -np 2 ./test.x).
+ </p>
+
+<h2> Basic use </h2>
+
+\precode
+// on each processor, you specify dofs that are already treated by another processor
+// for example if the processor 0 handles rows [0, 3, 5, 6] and
+// processor 1 the rows [1 2, 4, 5, 7], the row 5 is already treated by
+// processor 0. Of course, if each row is treated by a processor and only one
+// this array should be left empty
+IVect OverlapRow;
+int n = 4;
+if (MPI::COMM_WORLD.Get_rank() == 1)
+  {
+    n = 5;
+    OverlapRow.Reallocate(1);
+    // be careful because OverlapRow stores local numbers
+    // here the global row 5 has a local number equal to 3 on processor 1
+    OverlapRow(0) = 3;
+  }
+
+// in the constructor, you need to provide this array and also the communicator 
+// (you can share a vector between the processors you want by
+// constructing the appropriate communicator)
+DistributedVector<double> U(OverlapRow, MPI::COMM_WORLD);
+
+// another solution is to use the copy constructor
+DistributedVector<double> V(U);
+
+// you can use all the methods of a classical vector
+U.Reallocate(n);
+U.Fill(1.3);
+V.FillRand();
+
+// functions DotProd, DotProdConj and Norm2 have been overloaded
+// so that iterative algorithms are working with distributed vectors
+// other functions have not been overloaded
+Real_wp scal = DotProd(U, V);
+
+// for distributed matrices
+// we also need to know the global row numbers
+// and for each overlapped dof, the original processor
+IVect glob_number, original_proc;
+// and also rows that are shared with other processors
+// with the same numbering between SharedRows(i) of processor j
+// and SharedRows(j) of processor i (to ensure an exact correspondence)
+IVect ProcShared;
+Vector<IVect> SharedRows;
+if (MPI::COMM_WORLD.Get_rank() == 0)
+  {
+    glob_number.Reallocate(4);
+    glob_number(0) = 0;
+    glob_number(1) = 3;
+    glob_number(2) = 5;
+    glob_number(3) = 6;
+
+    // global row 5 is shared with processor 1
+    ProcShared.Reallocate(1);
+    ProcShared(0) = 1;
+
+    // local numbers are specified here (local row is 2, global row is 5)
+    SharedRows.Reallocate(1);
+    SharedRows(0).PushBack(2);
+  }
+else
+  {
+    glob_number.Reallocate(5);
+    glob_number(0) = 1;
+    glob_number(1) = 2;
+    glob_number(2) = 4;
+    glob_number(3) = 5;
+    glob_number(4) = 7;
+
+    // row 5 is already handled by processor 0
+    original_proc.Reallocate(1);
+    original_proc(0) = 0;
+
+    // global row 5 is shared with processor 0
+    ProcShared.Reallocate(1);
+    ProcShared(0) = 0;
+
+    // local numbers are specified here (local row is 3, global row is 5)
+    SharedRows.Reallocate(1);
+    SharedRows(0).PushBack(3);
+
+  }
+
+// initialisation of the matrix
+// initial Seldon storages are used
+// here n is the number of local rows (in our example 4 for proc 0, 5 for proc 1)
+DistributedMatrix<double, General, ArrayRowSparse> A(n, n);
+
+// you need to give also the number of global rows
+// overlapped rows and processors, shared rows and MPI communicator
+// shared rows can be given only for the first unknown, then Nvol is the number
+// of rows for each unknown and nb_u the number of unknowns
+int nglob = 8;
+int Nvol = n, nb_u = 1;
+A.Init(nglob, &glob_number, &OverlapRow, &original_proc,
+       Nvol, nb_u, &ProcShared, &SharedRows, MPI::COMM_WORLD);
+
+// you can use the methods of the base class Matrix
+// for example if you use AddInteraction, it will concern local numbers
+// this interaction will concern only the current processor
+double val = 1.34;
+// val is added to A(5, 6) (local number of global row 5 is 2, and 3 for global row 6)
+if (MPI::COMM_WORLD.Get_rank() == 0)
+  A.AddInteraction(2, 3, val);
+
+// if you wish to add an interaction concerning several processors,
+// you can use AddDistantInteraction if the row is local (and column number is global)
+// or AddRowDistantInteraction when the column is local
+// for example A(3, 7) = A(3, 7) + val gives 
+// the third argument is the rank of the distant processor
+if (MPI::COMM_WORLD.Get_rank() == 0)
+  A.AddDistantInteraction(1, 7, 1, val);
+
+// and A(7, 3) = A(7, 3) + val
+if (MPI::COMM_WORLD.Get_rank() == 0)
+  A.AddRowDistantInteraction(7, 1, 1, val);
+
+// once the matrix is constructed, you can factorize it with Mumps/Pastix/SuperLU
+// since these solvers need the global rows/columns, an assembling
+SparseDistributedSolver<double> mat_lu;
+mat_lu.Factorize(A);
+
+// and solve the linear system
+Vector<double> x(n);
+// on input, x contains the right hand side, on output the solution
+mat_lu.Solve(x);
+\endprecode
+
+<br/>
+
+<h2>Methods for distributed matrices : </h2>
+
+<table class="category-table">
+
+<tr class="category-table-tr-1">
+ <td class="category-table-td"><a href="#constructor">Distributed matrix constructors </a></td> 
+ <td class="category-table-td"> </td> </tr>
+
+<tr class="category-table-tr-2">
+ <td class="category-table-td"><a href="#GetCommunicator">GetCommunicator </a></td> 
+ <td class="category-table-td"> returns the MPI communicator
+ associated with the matrix</td> </tr>
+
+<tr class="category-table-tr-1">
+ <td class="category-table-td"><a href="#GetLocalM">GetLocalM </a></td> 
+ <td class="category-table-td"> returns the local number of rows</td> </tr>
+
+<tr class="category-table-tr-2">
+ <td class="category-table-td"><a href="#GetLocalM">GetLocalN </a></td> 
+ <td class="category-table-td"> returns the local number of columns</td> </tr>
+
+<tr class="category-table-tr-1">
+ <td class="category-table-td"><a href="#GetGlobalM">GetGlobalM </a></td> 
+ <td class="category-table-td"> returns the global number of rows</td> </tr>
+
+<tr class="category-table-tr-1">
+ <td class="category-table-td"><a href="#GetNodlScalar"> GetNodlScalar </a></td> 
+ <td class="category-table-td"> returns the number of rows for a
+ scalar unknown </td> </tr>
+
+<tr class="category-table-tr-2">
+ <td class="category-table-td"><a href="#GetNbScalarUnknowns"> GetNbScalarUnknowns </a></td> 
+ <td class="category-table-td"> returns the number of scalar unknowns</td> </tr>
+
+<tr class="category-table-tr-1">
+ <td class="category-table-td"><a href="#AddDistantInteraction"> AddDistantInteraction </a></td> 
+ <td class="category-table-td"> adds a value to A(i, j) where i is
+ local and j global </td> </tr>
+
+<tr class="category-table-tr-2">
+ <td class="category-table-td"><a href="#AddRowDistantInteraction"> AddRowDistantInteraction </a></td> 
+ <td class="category-table-td"> adds a value to A(i, j) where i is
+ global and j local </td> </tr>
+
+<tr class="category-table-tr-1">
+ <td class="category-table-td"><a href="#GetMaxDataSizeDistantCol"> GetMaxDataSizeDistantCol </a></td> 
+ <td class="category-table-td"> returns the number of values
+ in distant columns stored in all the processors </td> </tr>
+
+<tr class="category-table-tr-2">
+ <td class="category-table-td"><a href="#GetMaxDataSizeDistantRow"> GetMaxDataSizeDistantRow </a></td> 
+ <td class="category-table-td"> returns the number of values
+ in distant rows stored in all the processors</td> </tr>
+
+<tr class="category-table-tr-1">
+ <td class="category-table-td"><a href="#IsReadyForMltAdd"> IsReadyForMltAdd </a></td> 
+ <td class="category-table-td"> returns true if the structure is ready to
+ perform a matrix vector without preparation</td> </tr>
+
+<tr class="category-table-tr-2">
+ <td class="category-table-td"><a href="#GetDistantColSize"> GetDistantColSize </a></td> 
+ <td class="category-table-td"> returns the number of distant
+ non-zero entries for row i</td> </tr>
+
+<tr class="category-table-tr-1">
+ <td class="category-table-td"><a href="#IndexGlobalCol"> IndexGlobalCol </a></td> 
+ <td class="category-table-td"> returns the global column number of distant
+ non-zero entry j of local row i</td> </tr>
+
+<tr class="category-table-tr-2">
+ <td class="category-table-td"><a href="#ProcessorDistantCol"> ProcessorDistantCol </a></td> 
+ <td class="category-table-td"> returns the processor number of distant
+   non-zero entry j of local row i</td> </tr>
+
+<tr class="category-table-tr-1">
+ <td class="category-table-td"><a href="#ValueDistantCol"> ValueDistantCol </a></td> 
+ <td class="category-table-td"> returns the value associated with distant
+ non-zero entry j of local row i</td> </tr>
+
+<tr class="category-table-tr-2">
+ <td class="category-table-td"><a href="#GetDistantRowSize"> GetDistantRowSize </a></td> 
+ <td class="category-table-td"> returns the number of distant
+ non-zero entries for column i</td> </tr>
+
+<tr class="category-table-tr-1">
+ <td class="category-table-td"><a href="#IndexGlobalRow"> IndexGlobalRow </a></td> 
+ <td class="category-table-td"> returns the global row number of distant
+ non-zero entry j of local column i</td> </tr>
+
+<tr class="category-table-tr-2">
+ <td class="category-table-td"><a href="#ProcessorDistantRow"> ProcessorDistantRow </a></td> 
+ <td class="category-table-td"> returns the processor number of distant
+   non-zero entry j of local column i</td> </tr>
+
+<tr class="category-table-tr-1">
+ <td class="category-table-td"><a href="#ValueDistantRow"> ValueDistantRow </a></td> 
+ <td class="category-table-td"> returns the value associated with distant
+ non-zero entry j of local column i</td> </tr>
+
+<tr class="category-table-tr-2">
+ <td class="category-table-td"><a href="#Init">Init </a></td> 
+ <td class="category-table-td"> sets pointers to the arrays
+ containing global row numbers and overlapped rows</td> </tr>
+
+<tr class="category-table-tr-1">
+ <td class="category-table-td"><a href="#Reallocate">Reallocate </a></td> 
+ <td class="category-table-td"> changes the size of the matrix</td> </tr>
+
+<tr class="category-table-tr-2">
+ <td class="category-table-td"><a href="#Resize">Resize </a></td> 
+ <td class="category-table-td"> changes the size of the matrix and
+ keeps previous entries</td> </tr>
+
+<tr class="category-table-tr-1">
+ <td class="category-table-td"><a href="#Clear">Clear </a></td> 
+ <td class="category-table-td"> erases the matrix</td> </tr>
+
+<tr class="category-table-tr-2">
+ <td class="category-table-td"><a href="#GetGlobalRowNumber"> GetGlobalRowNumber </a></td> 
+ <td class="category-table-td"> returns local to global numbering</td> </tr>
+
+<tr class="category-table-tr-1">
+ <td class="category-table-td"><a href="#GetOverlapRowNumber"> GetOverlapRowNumber </a></td> 
+ <td class="category-table-td"> returns the array containing the numbers
+ of rows already handled by an another processor</td> </tr>
+
+<tr class="category-table-tr-2">
+ <td class="category-table-td"><a href="#GetOverlapProcNumber"> GetOverlapProcNumber </a></td> 
+ <td class="category-table-td"> returns the array containing the
+ processor numbers of rows already handled by an another processor</td> </tr>
+
+<tr class="category-table-tr-1">
+ <td class="category-table-td"><a href="#GetProcessorSharingRows"> GetProcessorSharingRows </a></td> 
+ <td class="category-table-td"> returns the list of processors that
+ share rows with the current processor</td> </tr>
+
+<tr class="category-table-tr-2">
+ <td class="category-table-td"><a href="#GetSharingRowNumbers"> GetSharingRowNumbers </a></td> 
+ <td class="category-table-td"> returns the list of rows shared with
+ each processor</td> </tr>
+
+<tr class="category-table-tr-1">
+ <td class="category-table-td"><a href="#GetMemorySize"> GetMemorySize </a></td> 
+ <td class="category-table-td"> returns the size used by this object
+ in bytes </td> </tr>
+
+<tr class="category-table-tr-2">
+ <td class="category-table-td"><a href="#GetNonZeros"> GetNonZeros </a></td> 
+ <td class="category-table-td"> returns the number of non-zero
+ entries stored in the matrix </td> </tr>
+
+<tr class="category-table-tr-1">
+ <td class="category-table-td"><a href="#GetDataSize"> GetDataSize </a></td> 
+ <td class="category-table-td"> returns the number of non-zero
+ entries stored in the matrix </td> </tr>
+
+<tr class="category-table-tr-2">
+ <td class="category-table-td"><a href="#RemoveSmallEntry"> RemoveSmallEntry </a></td> 
+ <td class="category-table-td"> drops small non-zero entries present
+ in the matrix </td> </tr>
+
+<tr class="category-table-tr-1">
+ <td class="category-table-td"><a href="#SetIdentity"> SetIdentity </a></td> 
+ <td class="category-table-td"> sets the matrix to the identity matrix </td> </tr>
+
+<tr class="category-table-tr-2">
+ <td class="category-table-td"><a href="#Fill"> Fill </a></td> 
+ <td class="category-table-td"> fills non-zero entries with 0, 1, 2, etc </td> </tr>
+
+<tr class="category-table-tr-1">
+ <td class="category-table-td"><a href="#FillRand"> FillRand </a></td> 
+ <td class="category-table-td"> fills non-zero entries with random values </td> </tr>
+
+<tr class="category-table-tr-2">
+ <td class="category-table-td"><a href="#Write"> Write </a></td> 
+ <td class="category-table-td"> writes the distributed matrix on
+ several files (one per processor) in binary format</td> </tr>
+
+<tr class="category-table-tr-1">
+ <td class="category-table-td"><a href="#WriteText"> WriteText </a></td> 
+ <td class="category-table-td"> writes the distributed matrix on
+ several files (one per processor) in ascii format </td> </tr>
+
+<tr class="category-table-tr-2">
+ <td class="category-table-td"><a href="#Read"> Read </a></td> 
+ <td class="category-table-td"> reads the distributed matrix on
+ several files (one per processor) in binary format</td> </tr>
+
+<tr class="category-table-tr-1">
+ <td class="category-table-td"><a href="#ReadText"> ReadText </a></td> 
+ <td class="category-table-td"> reads the distributed matrix on
+ several files (one per processor) in ascii format </td> </tr>
+
+</table>
+
+<br/>
+
+<h2>Functions for distributed matrices : </h2>
+
+
+<table class="category-table">
+
+  <tr class="category-table-tr-1">
+ <td class="category-table-td"><a href="#Mlt"> Mlt </a></td> 
+ <td class="category-table-td"> performs a matrix-vector product </td> </tr>
+
+  <tr class="category-table-tr-2">
+ <td class="category-table-td"><a href="#MltAdd"> MltAdd </a></td> 
+ <td class="category-table-td"> performs a matrix-vector product </td> </tr>
+
+    <tr class="category-table-tr-1">
+ <td class="category-table-td"><a href="#Add"> Add </a></td> 
+ <td class="category-table-td"> adds a distributed matrix to another one </td> </tr>
+
+  <tr class="category-table-tr-2">
+ <td class="category-table-td"><a href="#MaxAbs"> MaxAbs </a></td> 
+ <td class="category-table-td"> returns the maximum absolute value of
+ entries in the matrix </td> </tr>
+
+ <tr class="category-table-tr-1">
+ <td class="category-table-td"><a href="#GetRowSum"> GetRowSum </a></td> 
+ <td class="category-table-td"> computes the sum of absolute values
+ for each row </td> </tr>
+
+ <tr class="category-table-tr-2">
+ <td class="category-table-td"><a href="#GetColSum"> GetColSum </a></td> 
+ <td class="category-table-td"> computes the sum of absolute values
+ for each column </td> </tr>
+
+ <tr class="category-table-tr-1">
+ <td class="category-table-td"><a href="#GetRowColSum"> GetRowColSum </a></td> 
+ <td class="category-table-td"> computes the sum of absolute value
+   for each column and row</td> </tr>
+
+  <tr class="category-table-tr-2">
+ <td class="category-table-td"><a href="#Norm1"> Norm1 </a></td> 
+ <td class="category-table-td"> returns the 1-norm of the matrix </td> </tr>
+
+<tr class="category-table-tr-1">
+ <td class="category-table-td"><a href="#NormInf"> NormInf </a></td> 
+ <td class="category-table-td"> returns the infinite norm of the matrix </td> </tr>
+
+  <tr class="category-table-tr-2">
+ <td class="category-table-td"><a href="#Transpose"> Transpose </a></td> 
+ <td class="category-table-td"> computes the transpose of a
+ distributed matrix </td> </tr>
+
+  <tr class="category-table-tr-1">
+ <td class="category-table-td"><a href="#Conjugate"> Conjugate </a></td> 
+ <td class="category-table-td"> computes the conjugate of a
+ distributed matrix </td> </tr>
+
+  <tr class="category-table-tr-2">
+ <td class="category-table-td"><a href="#TransposeConj"> TransposeConj </a></td> 
+ <td class="category-table-td"> computes the transpose conjugate of a
+ distributed matrix </td> </tr>
+
+    <tr class="category-table-tr-1">
+ <td class="category-table-td"><a href="#GetRow"> GetRow </a></td> 
+ <td class="category-table-td"> extracts a row of a distributed matrix </td> </tr>
+
+  <tr class="category-table-tr-2">
+ <td class="category-table-td"><a href="#GetCol"> GetCol </a></td> 
+ <td class="category-table-td"> extracts a column of a distributed
+   matrix </td> </tr>
+
+  <tr class="category-table-tr-1">
+ <td class="category-table-td"><a href="#SetRow"> SetRow </a></td> 
+ <td class="category-table-td"> sets a row of a distributed matrix </td> </tr>
+
+  <tr class="category-table-tr-2">
+ <td class="category-table-td"><a href="#SetCol"> SetCol </a></td> 
+ <td class="category-table-td"> sets a column of a distributed matrix </td> </tr>
+
+   <tr class="category-table-tr-1">
+ <td class="category-table-td"><a href="#ApplyPermutation"> ApplyPermutation </a></td> 
+ <td class="category-table-td"> applies a permutation (rows and
+ columns) to a distributed matrix </td> </tr>
+
+  <tr class="category-table-tr-2">
+ <td class="category-table-td"><a href="#ApplyInversePermutation"> ApplyInversePermutation </a></td> 
+ <td class="category-table-td"> applies the inverse of a permutation
+ to a distributed matrix </td> </tr>
+
+    <tr class="category-table-tr-1">
+ <td class="category-table-td"><a href="#SOR"> SOR </a></td> 
+ <td class="category-table-td"> Applies Successive Over Relaxation
+ (S.O.R) iterations to solve a linear system </td> </tr>
+
+   <tr class="category-table-tr-2">
+ <td class="category-table-td"><a href="#Copy"> Copy </a></td> 
+ <td class="category-table-td"> Copies/Converts a distributed matrix
+ into another one </td> </tr>
+
+   <tr class="category-table-tr-1">
+ <td class="category-table-td"><a href="#GetSubMatrix"> GetSubMatrix </a></td> 
+ <td class="category-table-td"> extracts a sub-matrix from a given
+ distributed matrix </td> </tr>
+
+<tr class="category-table-tr-2">
+ <td class="category-table-td"><a href="#NormFro"> NormFro </a></td> 
+ <td class="category-table-td"> returns the Froebenius norm of the matrix </td> </tr>
+
+<tr class="category-table-tr-1">
+ <td class="category-table-td"><a href="#ScaleLeftMatrix"> ScaleLeftMatrix </a></td> 
+ <td class="category-table-td"> scales rows of the matrix </td> </tr>
+
+<tr class="category-table-tr-2">
+ <td class="category-table-td"><a href="#ScaleRightMatrix"> ScaleRightMatrix </a></td> 
+ <td class="category-table-td"> scales columns of the matrix </td> </tr>
+
+<tr class="category-table-tr-1">
+ <td class="category-table-td"><a href="#ScaleMatrix"> ScaleMatrix </a></td> 
+ <td class="category-table-td"> scales rows and columns of the matrix </td> </tr>
+
+<tr class="category-table-tr-2">
+ <td class="category-table-td"><a href="#AssembleDistributed"> AssembleDistributed </a></td> 
+ <td class="category-table-td"> assembles a distributed matrix </td> </tr>
+
+<tr class="category-table-tr-1">
+ <td class="category-table-td"><a href="#EraseRow"> EraseRow </a></td> 
+ <td class="category-table-td"> erases rows in the distributed matrix </td> </tr>
+
+<tr class="category-table-tr-2">
+ <td class="category-table-td"><a href="#EraseCol"> EraseCol </a></td> 
+ <td class="category-table-td"> erases columns in the distributed matrix </td> </tr>
+
+</table>
+
+
+
+<div class="separator"><a name="GetCommunicator"></a></div>
+
+
+
+<h3>GetCommunicator</h3>
+
+<h4>Syntax</h4>
+ <pre class="syntax-box">
+  MPI::Comm& GetCommunicator();
+</pre>
+
+<p>
+This method returns the MPI communicator used to distribute the vector
+or the matrix.
+</p>
+
+
+<h4>Example : </h4>
+\precode
+// for example if the processor 0 handles rows [0, 3, 5, 6] and
+// processor 1 the rows [1 2, 4, 5, 7], the row 5 is already treated by
+// processor 0 :
+IVect OverlapRow;
+int n = 4;
+if (MPI::COMM_WORLD.Get_rank() == 1)
+  {
+    n = 5;
+    OverlapRow.Reallocate(1);
+    // be careful because OverlapRow stores local numbers
+    // here the global row 5 has a local number equal to 3 on processor 1
+    OverlapRow(0) = 3;
+  }
+
+DistributedVector<double> U(OverlapRow, MPI::COMM_WORLD);
+
+// returns the communicator (here it should return MPI::COMM_WORLD)
+MPI::Comm& comm = U.GetCommunicator();
+\endprecode
+
+
+<h4>Location :</h4>
+<p>
+DistributedMatrix.hxx<br/>
+DistributedMatrixInline.cxx</p>
+
+
+
+<div class="separator"><a name="constructor"></a></div>
+
+
+
+<h3>Constructors of DistributedMatrix</h3>
+
+<h4>Syntax</h4>
+ <pre class="syntax-box">
+  DistributedMatrix();
+  DistributedMatrix(int m, int n);
+  DistributedMatrix(const DistributedMatrix&);
+</pre>
+
+<p>
+For a distributed matrix, the same constructors as for sequential
+matrices are available. The informations about communication with
+other processors are provided with the method <a href="#Init"><b>Init</b></a>.
+</p>
+
+
+<h4>Example : </h4>
+\precode
+// for the constructor, we specify the local number of rows and columns
+DistributedMatrix<double, General, ArrayRowSparse> A(n, n);
+
+// then you need to initialise the arrays used for parallel functions
+// (e.g. matrix-vector product, factorization)
+A.Init(nglob, &glob_number, &OverlapRow, &original_proc,
+       Nvol, nb_u, &ProcShared, &SharedRows, MPI::COMM_WORLD);
+
+// then the matrix can be modified with AddInteraction, AddDistantInteration and AddRowDistantInteraction
+A.AddInteraction(0, 3, 2.5);
+
+// if the copy constructor is used, there is no need to call Init since it will copy the pointers contained in A
+DistributedMatrix<double, General, ArrayRowSparse> B(A);
+\endprecode
+
+
+<h4>Location :</h4>
+<p>DistributedMatrix.hxx<br/>
+DistributedMatrix.cxx</p>
+
+
+
+<div class="separator"><a name="GetLocalM"></a></div>
+
+
+
+<h3>GetLocalM, GetLocalN</h3>
+
+<h4>Syntax</h4>
+ <pre class="syntax-box">
+   int GetLocalM() const
+   int GetLocalN() const
+</pre>
+
+<p>
+This method returns the local number of rows/columns of the
+distributed matrix. Only square matrices are supported, the matrix has
+the same number of rows and columns.
+</p>
+
+
+<h4>Example : </h4>
+\precode
+// for the constructor, you use the local number of rows
+DistributedMatrix<double, General, ArrayRowSparse> A(n, n);
+
+// then you need to initialise the arrays used for parallel functions
+// (e.g. matrix-vector product)
+A.Init(nglob, &glob_number, &OverlapRow, &original_proc,
+       Nvol, nb_u, &ProcShared, &SharedRows, MPI::COMM_WORLD);
+
+// GetLocalM, GetLocalN returns the n provided in the constructor or reallocate
+cout << "Number of rows in this processor = " << A.GetLocalM()  << endl;
+\endprecode
+
+
+<h4>Location :</h4>
+<p>DistributedMatrix.hxx<br/>
+DistributedMatrix.cxx</p>
+
+
+
+<div class="separator"><a name="GetGlobalM"></a></div>
+
+
+
+<h3>GetGlobalM</h3>
+
+<h4>Syntax</h4>
+ <pre class="syntax-box">
+ int GetGlobalM() const;
+</pre>
+
+<p>
+This function returns the global number of rows. 
+</p>
+
+
+<h4>Example : </h4>
+\precode
+// default constructor
+DistributedMatrix<double, General, ArrayRowSparse> A;
+
+// then Reallocate is called with the local number of rows
+A.Reallocate(n, n);
+
+// after filling nglob, global_row, overlap_row and overlap_proc
+// calling Init in order to provide these datas
+A.Init(nglob, &glob_number, &OverlapRow, &original_proc,
+       Nvol, nb_u, &ProcShared, &SharedRows, MPI::COMM_WORLD);
+
+// you can access to nglob by calling GetGlobalM
+nglob = A.GetGlobalM();
+\endprecode
+
+
+<h4>Location :</h4>
+<p>DistributedMatrix.hxx<br/>
+DistributedMatrix.cxx</p>
+
+
+
+<div class="separator"><a name="GetNodlScalar"></a></div>
+
+
+
+<h3>GetNodlScalar</h3>
+
+<h4>Syntax</h4>
+ <pre class="syntax-box">
+ int GetNodlScalar() const;
+</pre>
+
+<p>
+This method returns the local number of rows for each scalar
+components. Several components can be specified when Init is called. 
+</p>
+
+
+<h4>Example : </h4>
+\precode
+// default constructor
+DistributedMatrix<double, General, ArrayRowSparse> A;
+
+// then Reallocate is called with the local number of rows
+A.Reallocate(n, n);
+
+// total number of rows (with all components)
+int nglob = 18;
+
+// global numbers (for all components)
+IVect glob_number;
+
+// overlapped rows (with original processor)
+IVect OverlapRow, original_proc;
+
+// local number of rows (with all components)
+int n;
+
+// local number of rows for only one component
+int Nvol;
+
+// number of components
+int nb_u = 2;
+
+// corresponding rows that are shared between processors
+// for only one component
+IVect ProcShared;
+Vector<IVect> SharedRows;
+
+if (MPI::COMM_WORLD.Get_rank() == 0)
+  {
+    // for example, processor 0 owns rows 1, 3, 4, 6, 7, 8 and 10, 12, 13, 15, 16, 17 
+    n = 12;
+    Nvol = 6;
+
+    glob_number.Reallocate(n);
+    glob_number(0) = 1; glob_number(1) = 3; glob_number(2) = 4;
+    glob_number(3) = 6; glob_number(4) = 7; glob_number(5) = 8;
+    glob_number(6) = 10; glob_number(7) = 12; glob_number(8) = 13;
+    glob_number(9) = 15; glob_number(10) = 16; glob_number(11) = 17;
+
+    // rows 3, 6 and 12, 15 are shared with processor 1
+    // local numbers are 1, 3 and 7, 9
+    // for ProcShared/SharedRows, only one component is needed
+    ProcShared.Reallocate(1); SharedRows.Reallocate(1);
+    ProcShared(0) = 1;
+    SharedRows(0).PushBack(1); SharedRows(0).PushBack(3);
+
+  }
+else
+  {
+    // for example, processor 1 owns rows 0, 2, 3, 5, 6 and 9, 11, 12, 14, 15
+    n = 10;
+    Nvol = 5;
+
+    glob_number.Reallocate(n);
+    glob_number(0) = 0; glob_number(1) = 2; glob_number(2) = 3;
+    glob_number(3) = 5; glob_number(4) = 6;
+    glob_number(5) = 9; glob_number(6) = 11; glob_number(7) = 12;
+    glob_number(8) = 14; glob_number(9) = 15;
+
+    // rows 3, 6 and 12, 15 are originally in processor 0
+    OverlapRow.Reallocate(4);
+    // local numbers are 2, 4 and 7, 9
+    OverlapRow(0) = 2; OverlapRow(1) = 4;
+    OverlapRow(2) = 7; OverlapRow(3) = 9;
+    original_proc.Reallocate(4); original_proc.Fill(0);
+
+    // for ProcShared/SharedRows, only one component is needed
+    ProcShared.Reallocate(1); SharedRows.Reallocate(1);
+    ProcShared(0) = 0;
+    SharedRows(0).PushBack(2); SharedRows(0).PushBack(4);
+  }
+
+// after filling nglob, global_row, overlap_row and overlap_proc
+// calling Init in order to provide these datas
+A.Init(nglob, &glob_number, &OverlapRow, &original_proc,
+       Nvol, nb_u, &ProcShared, &SharedRows, MPI::COMM_WORLD);
+
+// you can access to Nvol by calling GetNodlScalar
+Nvol = A.GetNodlScalar();
+\endprecode
+
+
+<h4>Location :</h4>
+<p>DistributedMatrix.hxx<br/>
+DistributedMatrix.cxx</p>
+
+
+
+<div class="separator"><a name="GetNbScalarUnknowns"></a></div>
+
+
+
+<h3>GetNbScalarUnknowns</h3>
+
+<h4>Syntax</h4>
+ <pre class="syntax-box">
+ int GetNbScalarUnknowns() const;
+</pre>
+
+<p>
+This method returns the local number of scalar
+components. Several components can be specified when Init is called. 
+</p>
+
+
+<h4>Example : </h4>
+\precode
+// default constructor
+DistributedMatrix<double, General, ArrayRowSparse> A;
+
+// then Reallocate is called with the local number of rows
+A.Reallocate(n, n);
+
+// total number of rows (with all components)
+int nglob = 18;
+
+// global numbers (for all components)
+IVect glob_number;
+
+// overlapped rows (with original processor)
+IVect OverlapRow, original_proc;
+
+// local number of rows (with all components)
+int n;
+
+// local number of rows for only one component
+int Nvol;
+
+// number of components
+int nb_u = 2;
+
+// corresponding rows that are shared between processors
+// for only one component
+IVect ProcShared;
+Vector<IVect> SharedRows;
+
+if (MPI::COMM_WORLD.Get_rank() == 0)
+  {
+    // for example, processor 0 owns rows 1, 3, 4, 6, 7, 8 and 10, 12, 13, 15, 16, 17 
+    n = 12;
+    Nvol = 6;
+
+    glob_number.Reallocate(n);
+    glob_number(0) = 1; glob_number(1) = 3; glob_number(2) = 4;
+    glob_number(3) = 6; glob_number(4) = 7; glob_number(5) = 8;
+    glob_number(6) = 10; glob_number(7) = 12; glob_number(8) = 13;
+    glob_number(9) = 15; glob_number(10) = 16; glob_number(11) = 17;
+
+    // rows 3, 6 and 12, 15 are shared with processor 1
+    // local numbers are 1, 3 and 7, 9
+    // for ProcShared/SharedRows, only one component is needed
+    ProcShared.Reallocate(1); SharedRows.Reallocate(1);
+    ProcShared(0) = 1;
+    SharedRows(0).PushBack(1); SharedRows(0).PushBack(3);
+
+  }
+else
+  {
+    // for example, processor 1 owns rows 0, 2, 3, 5, 6 and 9, 11, 12, 14, 15
+    n = 10;
+    Nvol = 5;
+
+    glob_number.Reallocate(n);
+    glob_number(0) = 0; glob_number(1) = 2; glob_number(2) = 3;
+    glob_number(3) = 5; glob_number(4) = 6;
+    glob_number(5) = 9; glob_number(6) = 11; glob_number(7) = 12;
+    glob_number(8) = 14; glob_number(9) = 15;
+
+    // rows 3, 6 and 12, 15 are originally in processor 0
+    OverlapRow.Reallocate(4);
+    // local numbers are 2, 4 and 7, 9
+    OverlapRow(0) = 2; OverlapRow(1) = 4;
+    OverlapRow(2) = 7; OverlapRow(3) = 9;
+    original_proc.Reallocate(4); original_proc.Fill(0);
+
+    // for ProcShared/SharedRows, only one component is needed
+    ProcShared.Reallocate(1); SharedRows.Reallocate(1);
+    ProcShared(0) = 0;
+    SharedRows(0).PushBack(2); SharedRows(0).PushBack(4);
+  }
+
+// after filling nglob, global_row, overlap_row and overlap_proc
+// calling Init in order to provide these datas
+A.Init(nglob, &glob_number, &OverlapRow, &original_proc,
+       Nvol, nb_u, &ProcShared, &SharedRows, MPI::COMM_WORLD);
+
+// you can access to nb_u by calling GetNbScalarUnknowns
+Nvol = A.GetNbScalarUnknowns();
+\endprecode
+
+
+<h4>Location :</h4>
+<p>DistributedMatrix.hxx<br/>
+DistributedMatrix.cxx</p>
+
+
+
+<div class="separator"><a name="AddDistantInteraction"></a></div>
+
+
+
+<h3>AddDistantInteraction</h3>
+
+<h4>Syntax</h4>
+ <pre class="syntax-box">
+ void AddDistantInteraction(int i, int jglob, int proc, const T&amp; val);
+</pre>
+
+<p>
+This member function adds val for the local row i, and the global row jglob, proc being the processor that treats the global row jglob. 
+</p>
+
+
+<h4>Example : </h4>
+\precode
+// default constructor
+DistributedMatrix<double, General, ArrayRowSparse> A;
+
+// then Reallocate is called with the local number of rows
+A.Reallocate(n, n);
+
+// after filling nglob, global_row, overlap_row and overlap_proc
+// calling Init in order to provide these datas
+A.Init(nglob, &global_row, &overlap_row, &overlap_proc,
+       Nvol, nb_u, &ProcShared, &SharedRows, MPI::COMM_WORLD);
+
+// for local interaction, you have to use AddInteraction
+A.AddInteraction(i, j, val);
+
+// when the column is distant (ie located on another processor), you have to use AddDistantInteraction
+// jglob : global column number
+// proc : distant processor
+// val : value to add
+A.AddDistantInteraction(i, jglob, proc, val);
+\endprecode
+
+
+<h4>Location :</h4>
+<p>DistributedMatrix.hxx<br/>
+DistributedMatrix.cxx</p>
+
+
+
+<div class="separator"><a name="AddRowDistantInteraction"></a></div>
+
+
+
+<h3>AddRowDistantInteraction</h3>
+
+<h4>Syntax</h4>
+ <pre class="syntax-box">
+ void AddRowDistantInteraction(int iglob, int j, int proc, const T&amp; val);
+</pre>
+
+<p>
+This member function adds val for the global row iglob, and the local column j, proc being the processor that treats the global row iglob. 
+</p>
+
+
+<h4>Example : </h4>
+\precode
+// default constructor
+DistributedMatrix<double, General, ArrayRowSparse> A;
+
+// then Reallocate is called with the local number of rows
+A.Reallocate(n, n);
+
+// after filling nglob, global_row, overlap_row and overlap_proc
+// calling Init in order to provide these datas
+A.Init(nglob, &global_row, &overlap_row, &overlap_proc,
+       Nvol, nb_u, &ProcShared, &SharedRows, MPI::COMM_WORLD);
+
+// for a local interaction, you have to use AddInteraction
+A.AddInteraction(i, j, val);
+
+// when the column is distant (ie located on another processor), you have to use AddDistantInteraction
+// i : local row number
+// jglob : global column number
+// proc : distant processor
+// val : value to add
+// for the global matrix, it means that A_{global_row(i), jglob} is incremented with val
+A.AddDistantInteraction(i, jglob, proc, val);
+
+// when the row is distant, you have to use AddRowDistantInteraction
+// iglob : global row number
+// j : local column number
+// proc : distant processor
+// val : value to add
+// for the global matrix, it means that A_{iglob, global_row(j)} is incremented with val
+A.AddRowDistantInteraction(iglob, j, proc, val);
+
+\endprecode
+
+
+<h4>Location :</h4>
+<p>DistributedMatrix.hxx<br/>
+DistributedMatrix.cxx</p>
+
+
+
+<div class="separator"><a name="GetMaxDataSizeDistantCol"></a></div>
+
+
+
+<h3>GetMaxDataSizeDistantCol</h3>
+
+<h4>Syntax</h4>
+ <pre class="syntax-box">
+ int GetMaxDataSizeDistantCol() const
+</pre>
+
+<p>
+This member function returns the number of non-zero entries in distant
+columns for all the processors (it is obtained with a MPI_Allreduce instruction).
+</p>
+
+
+<h4>Example : </h4>
+\precode
+// default constructor
+DistributedMatrix<double, General, ArrayRowSparse> A;
+
+// then Reallocate is called with the local number of rows
+A.Reallocate(n, n);
+
+// after filling nglob, global_row, overlap_row and overlap_proc
+// calling Init in order to provide these datas
+A.Init(nglob, &global_row, &overlap_row, &overlap_proc,
+       Nvol, nb_u, &ProcShared, &SharedRows, MPI::COMM_WORLD);
+
+// for a local interaction, you have to use AddInteraction
+A.AddInteraction(i, j, val);
+
+// when the column is distant (ie located on another processor), you have to use AddDistantInteraction
+// i : local row number
+// jglob : global column number
+// proc : distant processor
+// val : value to add
+// for the global matrix, it means that A_{global_row(i), jglob} is incremented with val
+A.AddDistantInteraction(i, jglob, proc, val);
+
+// when the row is distant, you have to use AddRowDistantInteraction
+// iglob : global row number
+// j : local column number
+// proc : distant processor
+// val : value to add
+// for the global matrix, it means that A_{iglob, global_row(j)} is incremented with val
+A.AddRowDistantInteraction(iglob, j, proc, val);
+
+// in order to obtain the number of non-zero entries in distant columns
+// (values that have been created with AddDistantInteraction)
+// a matrix vector-product must be performed 
+Mlt(A, x, y);
+
+// number of non-zero entries stored for all the processors (only distant columns)
+// the result is the same for each processor
+int nnz_dist_col = A.GetMaxDataSizeDistantCol();
+\endprecode
+
+
+<h4>Location :</h4>
+<p>DistributedMatrix.hxx<br/>
+DistributedMatrix.cxx</p>
+
+
+
+<div class="separator"><a name="GetMaxDataSizeDistantRow"></a></div>
+
+
+
+<h3>GetMaxDataSizeDistantRow</h3>
+
+<h4>Syntax</h4>
+ <pre class="syntax-box">
+ int GetMaxDataSizeDistantRow() const
+</pre>
+
+<p>
+This member function returns the number of non-zero entries in distant
+rows for all the processors (it is obtained with a MPI_Allreduce instruction).
+</p>
+
+
+<h4>Example : </h4>
+\precode
+// default constructor
+DistributedMatrix<double, General, ArrayRowSparse> A;
+
+// then Reallocate is called with the local number of rows
+A.Reallocate(n, n);
+
+// after filling nglob, global_row, overlap_row and overlap_proc
+// calling Init in order to provide these datas
+A.Init(nglob, &global_row, &overlap_row, &overlap_proc,
+       Nvol, nb_u, &ProcShared, &amp;SharedRows, MPI::COMM_WORLD);
+
+// for a local interaction, you have to use AddInteraction
+A.AddInteraction(i, j, val);
+
+// when the column is distant (ie located on another processor), you have to use AddDistantInteraction
+// i : local row number
+// jglob : global column number
+// proc : distant processor
+// val : value to add
+// for the global matrix, it means that A_{global_row(i), jglob} is incremented with val
+A.AddDistantInteraction(i, jglob, proc, val);
+
+// when the row is distant, you have to use AddRowDistantInteraction
+// iglob : global row number
+// j : local column number
+// proc : distant processor
+// val : value to add
+// for the global matrix, it means that A_{iglob, global_row(j)} is incremented with val
+A.AddRowDistantInteraction(iglob, j, proc, val);
+
+// in order to obtain the number of non-zero entries in distant rows
+// (values that have been created with AddRowDistantInteraction)
+// a matrix vector-product must be performed
+Mlt(A, x, y);
+
+// number of non-zero entries stored for all the processors (only distant rows)
+// the result is the same for each processor
+int nnz_dist_row = A.GetMaxDataSizeDistantRow();
+\endprecode
+
+
+<h4>Location :</h4>
+<p>DistributedMatrix.hxx<br/>
+DistributedMatrix.cxx</p>
+
+
+
+<div class="separator"><a name="IsReadyForMltAdd"></a></div>
+
+
+
+<h3>IsReadyForMltAdd</h3>
+
+<h4>Syntax</h4>
+ <pre class="syntax-box">
+ bool IsReadyForMltAdd() const
+</pre>
+
+<p>
+This member function returns true if the structure is ready to perform
+a matrix-vector product. This function is not really useful since if
+the user performs a matrix-vector product with a structure that is not
+ready, the program will create all the arrays needed to perform the
+matrix-vector product. The
+function IsReadyForMltAdd can be used for informative purposes, for
+example to avoid taking into account the cost of constructing all
+these arrays (they induce MPI communications) if the
+structure was not ready.
+</p>
+
+
+<h4>Example : </h4>
+\precode
+// default constructor
+DistributedMatrix<double, General, ArrayRowSparse> A;
+
+// then Reallocate is called with the local number of rows
+A.Reallocate(n, n);
+
+// after filling nglob, global_row, overlap_row and overlap_proc
+// calling Init in order to provide these datas
+A.Init(nglob, &global_row, &overlap_row, &overlap_proc,
+       Nvol, nb_u, &ProcShared, &SharedRows, MPI::COMM_WORLD);
+
+// for a local interaction, you have to use AddInteraction
+A.AddInteraction(i, j, val);
+
+// when the column is distant (ie located on another processor), you have to use AddDistantInteraction
+// i : local row number
+// jglob : global column number
+// proc : distant processor
+// val : value to add
+// for the global matrix, it means that A_{global_row(i), jglob} is incremented with val
+A.AddDistantInteraction(i, jglob, proc, val);
+
+// when the row is distant, you have to use AddRowDistantInteraction
+// iglob : global row number
+// j : local column number
+// proc : distant processor
+// val : value to add
+// for the global matrix, it means that A_{iglob, global_row(j)} is incremented with val
+A.AddRowDistantInteraction(iglob, j, proc, val);
+
+// the structure will be said "ready" for a matrix-vector operation
+// if a first matrix-vector product has been performed
+bool struct_ready = A.IsReadyForMltAdd();
+\endprecode
+
+
+<h4>Location :</h4>
+<p>DistributedMatrix.hxx<br/>
+DistributedMatrix.cxx</p>
+
+
+
+<div class="separator"><a name="GetDistantColSize"></a></div>
+
+
+
+<h3>GetDistantColSize</h3>
+
+<h4>Syntax</h4>
+ <pre class="syntax-box">
+ int GetDistantColSize(int i) const
+</pre>
+
+<p>
+This member function returns the number of non-zero entries with
+distant column numbers for the local row i.
+</p>
+
+
+<h4>Example : </h4>
+\precode
+// default constructor
+DistributedMatrix<double, General, ArrayRowSparse> A;
+
+// then Reallocate is called with the local number of rows
+A.Reallocate(n, n);
+
+// after filling nglob, global_row, overlap_row and overlap_proc
+// calling Init in order to provide these datas
+A.Init(nglob, &global_row, &overlap_row, &overlap_proc,
+       Nvol, nb_u, &ProcShared, &SharedRows, MPI::COMM_WORLD);
+
+// for a local interaction, you have to use AddInteraction
+A.AddInteraction(i, j, val);
+
+// when the column is distant (ie located on another processor), you have to use AddDistantInteraction
+// i : local row number
+// jglob : global column number
+// proc : distant processor
+// val : value to add
+// for the global matrix, it means that A_{global_row(i), jglob} is incremented with val
+A.AddDistantInteraction(i, jglob, proc, val);
+
+// if you want to know all the non-zero entries stored in local row i (created wih AddDistantInteraction(i, ...) )
+int nnz_row_i = A.GetDistantColSize(i);
+\endprecode
+
+
+<h4>Location :</h4>
+<p>DistributedMatrix.hxx<br/>
+DistributedMatrix.cxx</p>
+
+
+
+<div class="separator"><a name="IndexGlobalCol"></a></div>
+
+
+
+<h3>IndexGlobalCol</h3>
+
+<h4>Syntax</h4>
+ <pre class="syntax-box">
+ int IndexGlobalCol(int i, int j) const
+</pre>
+
+<p>
+This member function returns the global column number of the j-th non-zero entry with
+a distant column number for the local row i.
+</p>
+
+
+<h4>Example : </h4>
+\precode
+// default constructor
+DistributedMatrix<double, General, ArrayRowSparse> A;
+
+// then Reallocate is called with the local number of rows
+A.Reallocate(n, n);
+
+// after filling nglob, global_row, overlap_row and overlap_proc
+// calling Init in order to provide these datas
+A.Init(nglob, &global_row, &overlap_row, &overlap_proc,
+       Nvol, nb_u, &ProcShared, &SharedRows, MPI::COMM_WORLD);
+
+// for a local interaction, you have to use AddInteraction
+A.AddInteraction(i, j, val);
+
+// when the column is distant (ie located on another processor), you have to use AddDistantInteraction
+// i : local row number
+// jglob : global column number
+// proc : distant processor
+// val : value to add
+// for the global matrix, it means that A_{global_row(i), jglob} is incremented with val
+A.AddDistantInteraction(i, jglob, proc, val);
+
+// if you want to know all the non-zero entries stored in local row i (created wih AddDistantInteraction(i, ...) )
+int nnz_row_i = A.GetDistantColSize(i);
+
+// loop over these distant non-zero entries
+for (int j = 0; j < nnz_row_i; j++)
+  {
+    // for the j-th non-zero entry
+    // global column number 
+    jglob = A.IndexGlobalCol(i, j);
+    // distant processor
+    proc = A.ProcessorDistantCol(i, j);
+    // value
+    val = A.ValueDistantCol(i, j);
+  }
+\endprecode
+
+
+<h4>Location :</h4>
+<p>DistributedMatrix.hxx<br/>
+DistributedMatrix.cxx</p>
+
+
+
+<div class="separator"><a name="ProcessorDistantCol"></a></div>
+
+
+
+<h3>ProcessorDistantCol</h3>
+
+<h4>Syntax</h4>
+ <pre class="syntax-box">
+ int ProcessorDistantCol(int i, int j) const
+</pre>
+
+<p>
+This member function returns the distant processor number of the j-th non-zero entry with
+a distant column number for the local row i.
+</p>
+
+
+<h4>Example : </h4>
+\precode
+// default constructor
+DistributedMatrix<double, General, ArrayRowSparse> A;
+
+// then Reallocate is called with the local number of rows
+A.Reallocate(n, n);
+
+// after filling nglob, global_row, overlap_row and overlap_proc
+// calling Init in order to provide these datas
+A.Init(nglob, &global_row, &overlap_row, &overlap_proc,
+       Nvol, nb_u, &ProcShared, &SharedRows, MPI::COMM_WORLD);
+
+// for a local interaction, you have to use AddInteraction
+A.AddInteraction(i, j, val);
+
+// when the column is distant (ie located on another processor), you have to use AddDistantInteraction
+// i : local row number
+// jglob : global column number
+// proc : distant processor
+// val : value to add
+// for the global matrix, it means that A_{global_row(i), jglob} is incremented with val
+A.AddDistantInteraction(i, jglob, proc, val);
+
+// if you want to know all the non-zero entries stored in local row i (created wih AddDistantInteraction(i, ...) )
+int nnz_row_i = A.GetDistantColSize(i);
+
+// loop over these distant non-zero entries
+for (int j = 0; j < nnz_row_i; j++)
+  {
+    // for the j-th non-zero entry
+    // global column number 
+    jglob = A.IndexGlobalCol(i, j);
+    // distant processor
+    proc = A.ProcessorDistantCol(i, j);
+    // value
+    val = A.ValueDistantCol(i, j);
+  }
+\endprecode
+
+
+<h4>Location :</h4>
+<p>DistributedMatrix.hxx<br/>
+DistributedMatrix.cxx</p>
+
+
+
+<div class="separator"><a name="ValueDistantCol"></a></div>
+
+
+
+<h3>ValueDistantCol</h3>
+
+<h4>Syntax</h4>
+ <pre class="syntax-box">
+ T ValueDistantCol(int i, int j) const
+</pre>
+
+<p>
+This member function returns the value of the j-th non-zero entry with
+a distant column number for the local row i.
+</p>
+
+
+<h4>Example : </h4>
+\precode
+// default constructor
+DistributedMatrix<double, General, ArrayRowSparse> A;
+
+// then Reallocate is called with the local number of rows
+A.Reallocate(n, n);
+
+// after filling nglob, global_row, overlap_row and overlap_proc
+// calling Init in order to provide these datas
+A.Init(nglob, &global_row, &overlap_row, &overlap_proc,
+       Nvol, nb_u, &ProcShared, &SharedRows, MPI::COMM_WORLD);
+
+// for a local interaction, you have to use AddInteraction
+A.AddInteraction(i, j, val);
+
+// when the column is distant (ie located on another processor), you have to use AddDistantInteraction
+// i : local row number
+// jglob : global column number
+// proc : distant processor
+// val : value to add
+// for the global matrix, it means that A_{global_row(i), jglob} is incremented with val
+A.AddDistantInteraction(i, jglob, proc, val);
+
+// if you want to know all the non-zero entries stored in local row i (created wih AddDistantInteraction(i, ...) )
+int nnz_row_i = A.GetDistantColSize(i);
+
+// loop over these distant non-zero entries
+for (int j = 0; j < nnz_row_i; j++)
+  {
+    // for the j-th non-zero entry
+    // global column number 
+    jglob = A.IndexGlobalCol(i, j);
+    // distant processor
+    proc = A.ProcessorDistantCol(i, j);
+    // value
+    val = A.ValueDistantCol(i, j);
+  }
+\endprecode
+
+
+<h4>Location :</h4>
+<p>DistributedMatrix.hxx<br/>
+DistributedMatrix.cxx</p>
+
+
+
+<div class="separator"><a name="GetDistantRowSize"></a></div>
+
+
+
+<h3>GetDistantRowSize</h3>
+
+<h4>Syntax</h4>
+ <pre class="syntax-box">
+ int GetDistantRowSize(int i) const
+</pre>
+
+<p>
+This member function returns the number of non-zero entries with
+distant row numbers for the local column i.
+</p>
+
+
+<h4>Example : </h4>
+\precode
+// default constructor
+DistributedMatrix<double, General, ArrayRowSparse> A;
+
+// then Reallocate is called with the local number of rows
+A.Reallocate(n, n);
+
+// after filling nglob, global_row, overlap_row and overlap_proc
+// calling Init in order to provide these datas
+A.Init(nglob, &global_row, &overlap_row, &overlap_proc,
+       Nvol, nb_u, &ProcShared, &SharedRows, MPI::COMM_WORLD);
+
+// for a local interaction, you have to use AddInteraction
+A.AddInteraction(i, j, val);
+
+// when the row is distant (ie located on another processor), you have to use AddRowDistantInteraction
+// iglob : global row number
+// j : local column number
+// proc : distant processor
+// val : value to add
+// for the global matrix, it means that A_{iglob, global_row(i)} is incremented with val
+A.AddRowDistantInteraction(iglob, j, proc, val);
+
+// if you want to know all the non-zero entries stored in local column j (created wih AddRowDistantInteraction(iglob, j, ...) )
+int nnz_col_j = A.GetDistantRowSize(j);
+\endprecode
+
+
+<h4>Location :</h4>
+<p>DistributedMatrix.hxx<br/>
+DistributedMatrix.cxx</p>
+
+
+
+<div class="separator"><a name="IndexGlobalRow"></a></div>
+
+
+
+<h3>IndexGlobalRow</h3>
+
+<h4>Syntax</h4>
+ <pre class="syntax-box">
+ int IndexGlobalRow(int i, int j) const
+</pre>
+
+<p>
+This member function returns the global row number of the j-th non-zero entry with
+a distant row number for the local column i.
+</p>
+
+
+<h4>Example : </h4>
+\precode
+// default constructor
+DistributedMatrix<double, General, ArrayRowSparse> A;
+
+// then Reallocate is called with the local number of rows
+A.Reallocate(n, n);
+
+// after filling nglob, global_row, overlap_row and overlap_proc
+// calling Init in order to provide these datas
+A.Init(nglob, &global_row, &overlap_row, &overlap_proc,
+       Nvol, nb_u, &ProcShared, &SharedRows, MPI::COMM_WORLD);
+
+// for a local interaction, you have to use AddInteraction
+A.AddInteraction(i, j, val);
+
+// when the row is distant (ie located on another processor), you have to use AddRowDistantInteraction
+// iglob : global row number
+// i : local column number
+// proc : distant processor
+// val : value to add
+// for the global matrix, it means that A_{iglob, global_row(j)} is incremented with val
+A.AddDistantInteraction(iglob, i, proc, val);
+
+// if you want to know all the non-zero entries stored in local column i (created wih AddDistantInteraction(iglob, i, ...) )
+int nnz_col_i = A.GetDistantRowSize(i);
+
+// loop over these distant non-zero entries
+for (int j = 0; j < nnz_col_i; j++)
+  {
+    // for the j-th non-zero entry
+    // global row number 
+    iglob = A.IndexGlobalRow(i, j);
+    // distant processor
+    proc = A.ProcessorDistantRow(i, j);
+    // value
+    val = A.ValueDistantRow(i, j);
+  }
+\endprecode
+
+
+<h4>Location :</h4>
+<p>DistributedMatrix.hxx<br/>
+DistributedMatrix.cxx</p>
+
+
+
+<div class="separator"><a name="ProcessorDistantRow"></a></div>
+
+
+
+<h3>ProcessorDistantRow</h3>
+
+<h4>Syntax</h4>
+ <pre class="syntax-box">
+ int ProcessorDistantRow(int i, int j) const
+</pre>
+
+<p>
+This member function returns the distant processor number of the j-th non-zero entry with
+a distant row number for the local column i.
+</p>
+
+
+<h4>Example : </h4>
+\precode
+// default constructor
+DistributedMatrix<double, General, ArrayRowSparse> A;
+
+// then Reallocate is called with the local number of rows
+A.Reallocate(n, n);
+
+// after filling nglob, global_row, overlap_row and overlap_proc
+// calling Init in order to provide these datas
+A.Init(nglob, &global_row, &overlap_row, &overlap_proc,
+       Nvol, nb_u, &ProcShared, &SharedRows, MPI::COMM_WORLD);
+
+// for a local interaction, you have to use AddInteraction
+A.AddInteraction(i, j, val);
+
+// when the row is distant (ie located on another processor), you have to use AddRowDistantInteraction
+// iglob : global row number
+// i : local column number
+// proc : distant processor
+// val : value to add
+// for the global matrix, it means that A_{iglob, global_row(j)} is incremented with val
+A.AddDistantInteraction(iglob, i, proc, val);
+
+// if you want to know all the non-zero entries stored in local column i (created wih AddDistantInteraction(iglob, i, ...) )
+int nnz_col_i = A.GetDistantRowSize(i);
+
+// loop over these distant non-zero entries
+for (int j = 0; j < nnz_col_i; j++)
+  {
+    // for the j-th non-zero entry
+    // global row number 
+    iglob = A.IndexGlobalRow(i, j);
+    // distant processor
+    proc = A.ProcessorDistantRow(i, j);
+    // value
+    val = A.ValueDistantRow(i, j);
+  }
+\endprecode
+
+
+<h4>Location :</h4>
+<p>DistributedMatrix.hxx<br/>
+DistributedMatrix.cxx</p>
+
+
+
+<div class="separator"><a name="ValueDistantRow"></a></div>
+
+
+
+<h3>ValueDistantRow</h3>
+
+<h4>Syntax</h4>
+ <pre class="syntax-box">
+ T ValueDistantRow(int i, int j) const
+</pre>
+
+<p>
+This member function returns the value of the j-th non-zero entry with
+a distant row number for the local column i.
+</p>
+
+
+<h4>Example : </h4>
+\precode
+// default constructor
+DistributedMatrix<double, General, ArrayRowSparse> A;
+
+// then Reallocate is called with the local number of rows
+A.Reallocate(n, n);
+
+// after filling nglob, global_row, overlap_row and overlap_proc
+// calling Init in order to provide these datas
+A.Init(nglob, &global_row, &overlap_row, &overlap_proc,
+       Nvol, nb_u, &ProcShared, &SharedRows, MPI::COMM_WORLD);
+
+// for a local interaction, you have to use AddInteraction
+A.AddInteraction(i, j, val);
+
+// when the row is distant (ie located on another processor), you have to use AddRowDistantInteraction
+// iglob : global row number
+// i : local column number
+// proc : distant processor
+// val : value to add
+// for the global matrix, it means that A_{iglob, global_row(j)} is incremented with val
+A.AddDistantInteraction(iglob, i, proc, val);
+
+// if you want to know all the non-zero entries stored in local column i (created wih AddDistantInteraction(iglob, i, ...) )
+int nnz_col_i = A.GetDistantRowSize(i);
+
+// loop over these distant non-zero entries
+for (int j = 0; j < nnz_col_i; j++)
+  {
+    // for the j-th non-zero entry
+    // global row number 
+    iglob = A.IndexGlobalRow(i, j);
+    // distant processor
+    proc = A.ProcessorDistantRow(i, j);
+    // value
+    val = A.ValueDistantRow(i, j);
+  }
+\endprecode
+
+
+<h4>Location :</h4>
+<p>DistributedMatrix.hxx<br/>
+DistributedMatrix.cxx</p>
+
+
+
+<div class="separator"><a name="Init"></a></div>
+
+
+
+<h3>Init</h3>
+
+<h4>Syntax</h4>
+ <pre class="syntax-box">
+ void Init(int nglob, IVect* global_row, IVect* overlap_row, IVect* overlap_proc,
+           int Nvol, int nb_u, IVect* SharingProc, Vector&lt;IVect&gt;* SharingRows, MPI::Comm&amp; comm);
+
+ void Init(const DistributedMatrix_Base&lt;T&gt;&amp;);
+
+ void Init(Vector&lt;IVect&gt;&amp; all_rows, IVect&amp; global_row, IVect&amp; overlap_row, IVect&amp; original_proc,
+            IVect&amp; SharingProc, Vector&lt;IVect&gt;&amp; SharingRows, MPI::Comm&amp; comm, bool distribute);
+
+ void Init(IVect&amp; global_row, IVect&amp; overlap_row, IVect&amp; original_proc,
+           IVect&amp; SharingProc, Vector&lt;IVect&gt;&amp; SharingRows, MPI::Comm&amp; comm);
+ </pre>
+
+<p>
+The function Init must be called after the constructor in order to
+provide the global row numbers (array global_row), the rows already
+treated by another processor (array overlap_row), the processors that
+treat originally these rows (array overlap_proc) and the MPI
+communicator. Nvol is the number of rows for a scalar component, nb_u
+the number of scalar components, SharingProc stores the
+processors that share rows with current processor, and SharingRows the
+local row numbers that are shared with processor SharingProc(i). These
+numbers are assumed to be sorted such that shared row numbers with
+processor j in processor i correspond to row numbers shared with
+processor i in processor j. If the user does not know how to construct
+these arrays, they can be constructed automatically by providing the
+global row numbers only (last syntax of Init).
+</p>
+
+
+<h4>Example : </h4>
+\precode
+// on each processor, you specify rows that are already treated by another processor
+// for example if the processor 0 handles rows [0, 3, 5, 6] and
+// processor 1 the rows [1 2, 4, 5, 7], the row 5 is already treated by
+// processor 0. Of course, if each row is treated by a processor and only one
+// this array should be left empty
+IVect OverlapRow;
+int nglob = 8;
+int n = 4;
+if (MPI::COMM_WORLD.Get_rank() == 1)
+  {
+    n = 5;
+    OverlapRow.Reallocate(1);
+    // be careful because OverlapRow stores local numbers
+    // here the global row 5 has a local number equal to 3 on processor 1
+    OverlapRow(0) = 3;
+  }
+
+// for distributed matrices
+// we also need to know the global row numbers
+// and for each overlapped row, the original processor
+IVect glob_number, original_proc;
+
+// for shared rows, all the row numbers shared with processors
+IVect SharingProc(1); Vector<IVect> SharingRows(1);
+if (MPI::COMM_WORLD.Get_rank() == 0)
+  {
+    glob_number.Reallocate(4);
+    glob_number(0) = 0;
+    glob_number(1) = 3;
+    glob_number(2) = 5;
+    glob_number(3) = 6;
+
+    // global row 5 is shared with processor 1 (local number = 2)
+    SharingProc(0) = 1;
+    SharingRows(0).PushBack(2);
+  }
+else
+  {
+    glob_number.Reallocate(5);
+    glob_number(0) = 1;
+    glob_number(1) = 2;
+    glob_number(2) = 4;
+    glob_number(3) = 5;
+    glob_number(4) = 7;
+
+    // row 5 is already handled by processor 0
+    original_proc.Reallocate(1);
+    original_proc(0) = 0;
+
+    // here SharingRows is similar to OverlapRow because all shared dofs of this processor are already treated by processor 0
+    // global row 5 is shared with processor 0 (local number = 3)
+    SharingProc(0) = 0;
+    SharingRows(0).PushBack(3);
+  }
+
+// for the constructor, you use the local number of rows
+DistributedMatrix<double, General, ArrayRowSparse> A(n, n);
+
+// then you need to initialise the arrays used for parallel functions (e.g. matrix-vector product)
+A.Init(nglob, &glob_number, &OverlapRow, &original_proc,
+       n, 1, &SharingProc, &SharingRows, MPI::COMM_WORLD);
+\endprecode
+
+<p> Another example does not construct these arrays but calls Init to
+  construct them automatically. The third syntax of Init corresponds
+  to the case where all the row numbers are constructed on the root
+  processor (of rank 0). If distribute is true, the root processor
+  sends to each processor the global row numbers, otherwise these global numbers are assumed
+  to be provided in second argument global_row for each processor. </p>
+
+
+\precode
+// local number of rows 
+int n = 4;
+if (MPI::COMM_WORLD.Get_rank() == 1)
+  n = 5;
+
+// each processor constructs its global numbers
+// rows [0, 3, 5, 6] for processor 0
+// rows [1 2, 4, 5, 7] for processor 1
+// you notice that global row 5 is here shared by the two processors
+IVect glob_number(n);
+if (MPI::COMM_WORLD.Get_rank() == 0)
+  {
+    glob_number(0) = 0;
+    glob_number(1) = 3;
+    glob_number(2) = 5;
+    glob_number(3) = 6;
+  }
+else
+  {
+    glob_number(0) = 1;
+    glob_number(1) = 2;
+    glob_number(2) = 4;
+    glob_number(3) = 5;
+    glob_number(4) = 7;
+  }
+
+// for the constructor, you use the local number of rows
+DistributedMatrix<double, General, ArrayRowSparse> A(n, n);
+
+// arrays overlap_row, original_proc, SharingProc, SharingRows
+// are output arrays of Init here, they are constructed with the given global numbers 
+IVect overlap_row, original_proc;
+IVect SharingProc;
+Vector<IVect> SharingRows;
+A.Init(glob_number, overlap_row, original_proc, SharingProc, SharingRows, MPI::COMM_WORLD);
+
+// once these arrays have been constructed, you can use them for other distributed matrices that have the same distribution.
+DistributedMatrix<double, General, ArrayRowSparse> B(n, n);
+
+B.Init(nglob, &glob_number, &OverlapRow, &original_proc,
+       n, 1, &SharingProc, &SharingRows, MPI::COMM_WORLD);
+
+// another solution is to call Init with the original distributed matrix
+DistributedMatrix&lt;double, General, ArrayRowSparse&gt; C(n, n);
+
+C.Init(A);
+\endprecode
+
+<h4>Location :</h4>
+<p>DistributedMatrix.hxx<br/>
+DistributedMatrix.cxx</p>
+
+
+
+<div class="separator"><a name="Reallocate"></a></div>
+
+
+
+<h3>Reallocate</h3>
+
+<h4>Syntax</h4>
+ <pre class="syntax-box">
+ void Reallocate(int m, int n);
+</pre>
+
+<p>
+This function reallocates the matrix, previous entries are lost. 
+</p>
+
+
+<h4>Example : </h4>
+\precode
+// default constructor
+DistributedMatrix<double, General, ArrayRowSparse> A;
+
+// then Reallocate is called with the local number of rows
+A.Reallocate(n, n);
+\endprecode
+
+
+<h4>Location :</h4>
+<p>DistributedMatrix.hxx<br/>
+DistributedMatrix.cxx</p>
+
+
+
+<div class="separator"><a name="Resize"></a></div>
+
+
+
+<h3>Resize</h3>
+
+<h4>Syntax</h4>
+ <pre class="syntax-box">
+ void Resize(int m, int n);
+</pre>
+
+<p>
+This function resizes the matrix, previous entries are kept. 
+</p>
+
+
+<h4>Example : </h4>
+\precode
+// default constructor
+DistributedMatrix<double, General, ArrayRowSparse> A;
+
+// then Resize is called with the local number of rows
+A.Resize(n, n);
+\endprecode
+
+
+<h4>Location :</h4>
+<p>DistributedMatrix.hxx<br/>
+DistributedMatrix.cxx</p>
+
+
+
+<div class="separator"><a name="Clear"></a></div>
+
+
+
+<h3>Clear</h3>
+
+<h4>Syntax</h4>
+ <pre class="syntax-box">
+ void Clear();
+</pre>
+
+<p>
+This function clears the matrix. 
+</p>
+
+
+<h4>Example : </h4>
+\precode
+// default constructor
+DistributedMatrix<double, General, ArrayRowSparse> A;
+
+// then Resize is called with the local number of rows
+A.Resize(n, n);
+
+// the matrix is erased
+A.Clear();
+\endprecode
+
+
+<h4>Location :</h4>
+<p>DistributedMatrix.hxx<br/>
+DistributedMatrix.cxx</p>
+
+
+
+<div class="separator"><a name="GetGlobalRowNumber"></a></div>
+
+
+
+<h3>GetGlobalRowNumber</h3>
+
+<h4>Syntax</h4>
+ <pre class="syntax-box">
+ IVect&amp; GetGlobalRowNumber() const;
+</pre>
+
+<p>
+This function returns the global row numbers (local to global numbering).
+</p>
+
+
+<h4>Example : </h4>
+\precode
+// default constructor
+DistributedMatrix<double, General, ArrayRowSparse> A;
+
+// then Reallocate is called with the local number of rows
+A.Reallocate(n, n);
+
+// after filling nglob, global_row, overlap_row and overlap_proc
+// calling Init in order to provide these datas
+A.Init(nglob, &glob_number, &OverlapRow, &original_proc,
+       n, 1, &SharingProc, &SharingRows, MPI::COMM_WORLD);
+
+// you can access to global_row by calling GetGlobalRowNumber
+IVect&amp; global_row = A.GetGlobalRowNumber();
+\endprecode
+
+
+<h4>Location :</h4>
+<p>DistributedMatrix.hxx<br/>
+DistributedMatrix.cxx</p>
+
+
+
+<div class="separator"><a name="GetOverlapRowNumber"></a></div>
+
+
+
+<h3>GetOverlapRowNumber</h3>
+
+<h4>Syntax</h4>
+ <pre class="syntax-box">
+ IVect&amp; GetOverlapRowNumber() const;
+</pre>
+
+<p>
+This function returns the overlapped row numbers, i.e. rows that are already treated by another processor.
+</p>
+
+
+<h4>Example : </h4>
+\precode
+// default constructor
+DistributedMatrix<double, General, ArrayRowSparse> A;
+
+// then Reallocate is called with the local number of rows
+A.Reallocate(n, n);
+
+// after filling nglob, global_row, overlap_row and overlap_proc
+// calling Init in order to provide these datas
+A.Init(nglob, &glob_number, &OverlapRow, &original_proc,
+       n, 1, &SharingProc, &SharingRows, MPI::COMM_WORLD);
+
+// you can access to overlap_row by calling GetOverlapRowNumber
+IVect&amp; overlap_row = A.GetOverlapRowNumber();
+\endprecode
+
+
+<h4>Location :</h4>
+<p>DistributedMatrix.hxx<br/>
+DistributedMatrix.cxx</p>
+
+
+
+<div class="separator"><a name="GetOverlapProcNumber"></a></div>
+
+
+
+<h3>GetOverlapProcNumber</h3>
+
+<h4>Syntax</h4>
+ <pre class="syntax-box">
+ IVect&amp; GetOverlapProcNumber() const;
+</pre>
+
+<p>
+This function returns the processor numbers associated with overlapped row numbers, i.e. rows that are already treated by another processor.
+</p>
+
+
+<h4>Example : </h4>
+\precode
+// default constructor
+DistributedMatrix<double, General, ArrayRowSparse> A;
+
+// then Reallocate is called with the local number of rows
+A.Reallocate(n, n);
+
+// after filling nglob, global_row, overlap_row and overlap_proc
+// calling Init in order to provide these datas
+A.Init(nglob, &glob_number, &OverlapRow, &original_proc,
+       n, 1, &SharingProc, &SharingRows, MPI::COMM_WORLD);
+
+// you can access to original_proc by calling GetOverlapProcNumber
+IVect&amp; original_proc = A.GetOverlaProcNumber();
+\endprecode
+
+
+<h4>Location :</h4>
+<p>DistributedMatrix.hxx<br/>
+DistributedMatrix.cxx</p>
+
+
+
+<div class="separator"><a name="GetProcessorSharingRows"></a></div>
+
+
+
+<h3>GetProcessorSharingRows</h3>
+
+<h4>Syntax</h4>
+ <pre class="syntax-box">
+ IVect&amp; GetProcessorSharingRows() const;
+</pre>
+
+<p>
+This function returns the processor numbers that share rows with the
+current processor.
+</p>
+
+
+<h4>Example : </h4>
+\precode
+// default constructor
+DistributedMatrix<double, General, ArrayRowSparse> A;
+
+// then Reallocate is called with the local number of rows
+A.Reallocate(n, n);
+
+// after filling nglob, global_row, overlap_row and overlap_proc
+// calling Init in order to provide these datas
+A.Init(nglob, &glob_number, &OverlapRow, &original_proc,
+       n, 1, &SharingProc, &SharingRows, MPI::COMM_WORLD);
+
+// you can access to SharingProc by calling GetProcessorSharingRows
+IVect& SharingProc = A.GetProcessorSharingRows();
+\endprecode
+
+
+<h4>Location :</h4>
+<p>DistributedMatrix.hxx<br/>
+DistributedMatrix.cxx</p>
+
+
+
+<div class="separator"><a name="GetSharingRowNumbers"></a></div>
+
+
+
+<h3>GetSharingRowNumbers</h3>
+
+<h4>Syntax</h4>
+
+<pre class="syntax-box">
+ Vector&lt;IVect&gt;&amp; GetSharingRowNumbers() const;
+</pre>
+
+<p>
+This function returns the row numbers that are shared with other processors.
+</p>
+
+
+<h4>Example : </h4>
+\precode
+// default constructor
+DistributedMatrix<double, General, ArrayRowSparse> A;
+
+// then Reallocate is called with the local number of rows
+A.Reallocate(n, n);
+
+// after filling nglob, global_row, overlap_row and overlap_proc
+// calling Init in order to provide these datas
+A.Init(nglob, &glob_number, &OverlapRow, &original_proc,
+       n, 1, &SharingProc, &SharingRows, MPI::COMM_WORLD);
+
+// you can access to SharingRows by calling GetSharingRowNumbers
+IVect& SharingProc = A.GetSharingRowNumbers();
+\endprecode
+
+
+<h4>Location :</h4>
+<p>DistributedMatrix.hxx<br/>
+DistributedMatrix.cxx</p>
+
+
+
+<div class="separator"><a name="GetMemorySize"></a></div>
+
+
+
+<h3>GetMemorySize</h3>
+
+<h4>Syntax</h4>
+
+<pre class="syntax-box">
+ size_t GetMemorySize() const;
+</pre>
+
+<p>
+This function returns the memory used (in bytes) to store the distributed matrix
+for the current matrix. The user should perform a MPI reduce operation to
+obtain the global size of the matrix.
+</p>
+
+
+
+<h4>Example : </h4>
+\precode
+// default constructor
+DistributedMatrix<double, General, ArrayRowSparse> A;
+
+// then Reallocate is called with the local number of rows
+A.Reallocate(n, n);
+
+// for local interaction, you can use AddInteraction
+A.AddInteraction(i, j, val);
+
+// when the column is distant, you can use AddDistantInteraction
+A.AddDistantInteraction(i, jglob, proc, val);
+
+// when the row is distant, you can use AddRowDistantInteraction
+A.AddRowDistantInteraction(iglob, j, proc, val);
+
+// once the matrix is filled, you can retrieve the size used for each processor
+size_t taille = A.GetMemorySize();
+\endprecode
+
+
+<h4>Location :</h4>
+<p>DistributedMatrix.hxx<br/>
+DistributedMatrix.cxx</p>
+
+
+
+<div class="separator"><a name="GetNonZeros"></a></div>
+
+
+
+<h3>GetNonZeros</h3>
+
+<h4>Syntax</h4>
+
+<pre class="syntax-box">
+ int GetNonZeros() const;
+</pre>
+
+<p>
+This function returns the number of non-zero entries stored in the
+distributed matrix for the
+current processor. The user should perform a MPI reduce operation to
+obtain the global number of non-zero entries.
+</p>
+
+
+
+<h4>Example : </h4>
+\precode
+// default constructor
+DistributedMatrix<double, General, ArrayRowSparse> A;
+
+// then Reallocate is called with the local number of rows
+A.Reallocate(n, n);
+
+// for local interaction, you can use AddInteraction
+A.AddInteraction(i, j, val);
+
+// when the column is distant, you can use AddDistantInteraction
+A.AddDistantInteraction(i, jglob, proc, val);
+
+// when the row is distant, you can use AddRowDistantInteraction
+A.AddRowDistantInteraction(iglob, j, proc, val);
+
+// once the matrix is filled, you can retrieve the number of non-zero entries
+int nnz = A.GetNonZeros();
+\endprecode
+
+
+<h4>Location :</h4>
+<p>DistributedMatrix.hxx<br/>
+DistributedMatrix.cxx</p>
+
+
+
+<div class="separator"><a name="GetDataSize"></a></div>
+
+
+
+<h3>GetDataSize</h3>
+
+<h4>Syntax</h4>
+
+<pre class="syntax-box">
+ int GetDataSize() const;
+</pre>
+
+<p>
+This function returns the number of "equivalent" non-zero entries stored in the
+distributed matrix for the
+current processor. The user should perform a MPI reduce operation to
+obtain the global number of non-zero entries.
+</p>
+
+
+
+<h4>Example : </h4>
+\precode
+// default constructor
+DistributedMatrix<double, General, ArrayRowSparse> A;
+
+// then Reallocate is called with the local number of rows
+A.Reallocate(n, n);
+
+// for local interaction, you can use AddInteraction
+A.AddInteraction(i, j, val);
+
+// when the column is distant, you can use AddDistantInteraction
+A.AddDistantInteraction(i, jglob, proc, val);
+
+// when the row is distant, you can use AddRowDistantInteraction
+A.AddRowDistantInteraction(iglob, j, proc, val);
+
+// once the matrix is filled, you can retrieve the equivalent number of non-zero entries
+int nnz = A.GetDataSize();
+\endprecode
+
+
+<h4>Location :</h4>
+<p>DistributedMatrix.hxx<br/>
+DistributedMatrix.cxx</p>
+
+
+
+<div class="separator"><a name="RemoveSmallEntry"></a></div>
+
+
+
+<h3>RemoveSmallEntry</h3>
+
+<h4>Syntax</h4>
+
+<pre class="syntax-box">
+ void RemoveSmallEntry(T epsilon) const;
+</pre>
+
+<p>
+This member function drops small values contained in the matrix. The
+result may depend on the number of processors, since non-zero entries
+are shared between processors. Here, each value stored is dropped if
+below epsilon, no assembling is performed.
+</p>
+
+
+
+<h4>Example : </h4>
+\precode
+// default constructor
+DistributedMatrix<double, General, ArrayRowSparse> A;
+
+// then Reallocate is called with the local number of rows
+A.Reallocate(n, n);
+
+// for local interaction, you can use AddInteraction
+A.AddInteraction(i, j, val);
+
+// when the column is distant, you can use AddDistantInteraction
+A.AddDistantInteraction(i, jglob, proc, val);
+
+// when the row is distant, you can use AddRowDistantInteraction
+A.AddRowDistantInteraction(iglob, j, proc, val);
+
+// you can drop small values if you want
+A.RemoveSmallEntry(1e-12);
+\endprecode
+
+
+<h4>Location :</h4>
+<p>DistributedMatrix.hxx<br/>
+DistributedMatrix.cxx</p>
+
+
+
+<div class="separator"><a name="SetIdentity"></a></div>
+
+
+
+<h3>SetIdentity</h3>
+
+<h4>Syntax</h4>
+
+<pre class="syntax-box">
+ void SetIdentity();
+</pre>
+
+<p>
+This member function reinitializes the matrix as the identity matrix.
+</p>
+
+
+
+<h4>Example : </h4>
+\precode
+// default constructor
+DistributedMatrix<double, General, ArrayRowSparse> A;
+
+// then Reallocate is called with the local number of rows
+A.Reallocate(n, n);
+
+// for local interaction, you can use AddInteraction
+A.AddInteraction(i, j, val);
+
+// when the column is distant, you can use AddDistantInteraction
+A.AddDistantInteraction(i, jglob, proc, val);
+
+// when the row is distant, you can use AddRowDistantInteraction
+A.AddRowDistantInteraction(iglob, j, proc, val);
+
+// you can reinitialize A as the identity matrix
+A.SetIdentity();
+\endprecode
+
+
+<h4>Location :</h4>
+<p>DistributedMatrix.hxx<br/>
+DistributedMatrix.cxx</p>
+
+
+
+<div class="separator"><a name="Fill"></a></div>
+
+
+
+<h3>Fill</h3>
+
+<h4>Syntax</h4>
+
+<pre class="syntax-box">
+  void Fill();
+  void Fill(T x);
+</pre>
+
+<p>
+This member function fills the matrix with 0, 1, 2, etc or with a
+given value. The
+result may depend on the number of processors, since non-zero entries
+are shared between processors. Here each non-zero entry is modified
+without taking into account duplicate values due to shared row numbers.
+</p>
+
+
+
+<h4>Example : </h4>
+\precode
+// default constructor
+DistributedMatrix<double, General, ArrayRowSparse> A;
+
+// then Reallocate is called with the local number of rows
+A.Reallocate(n, n);
+
+// for local interaction, you can use AddInteraction
+A.AddInteraction(i, j, val);
+
+// when the column is distant, you can use AddDistantInteraction
+A.AddDistantInteraction(i, jglob, proc, val);
+
+// when the row is distant, you can use AddRowDistantInteraction
+A.AddRowDistantInteraction(iglob, j, proc, val);
+
+// you can initialize all non-zero entries to a given value
+A.Fill(1.0);
+\endprecode
+
+
+<h4>Location :</h4>
+<p>DistributedMatrix.hxx<br/>
+DistributedMatrix.cxx</p>
+
+
+
+<div class="separator"><a name="FillRand"></a></div>
+
+
+
+<h3>FillRand</h3>
+
+<h4>Syntax</h4>
+
+<pre class="syntax-box">
+  void FillRand();
+</pre>
+
+<p>
+This member function fills the matrix with random values. The
+result may depend on the number of processors, since non-zero entries
+are shared between processors. Here each non-zero entry is modified
+without taking into account duplicate values due to shared row numbers.
+</p>
+
+
+
+<h4>Example : </h4>
+\precode
+// default constructor
+DistributedMatrix<double, General, ArrayRowSparse> A;
+
+// then Reallocate is called with the local number of rows
+A.Reallocate(n, n);
+
+// for local interaction, you can use AddInteraction
+A.AddInteraction(i, j, val);
+
+// when the column is distant, you can use AddDistantInteraction
+A.AddDistantInteraction(i, jglob, proc, val);
+
+// when the row is distant, you can use AddRowDistantInteraction
+A.AddRowDistantInteraction(iglob, j, proc, val);
+
+// you can initialize all non-zero entries to random values
+A.FillRand();
+\endprecode
+
+
+<h4>Location :</h4>
+<p>DistributedMatrix.hxx<br/>
+DistributedMatrix.cxx</p>
+
+
+
+<div class="separator"><a name="Write"></a></div>
+
+
+
+<h3>Write</h3>
+
+<h4>Syntax</h4>
+
+<pre class="syntax-box">
+  void Write(string) const;
+  void Write(ostream&amp;) const;
+</pre>
+
+<p>
+This member function is not implemented for distributed matrices
+</p>
+
+
+
+<h4>Example : </h4>
+\precode
+// default constructor
+DistributedMatrix<double, General, ArrayRowSparse> A;
+
+// then Reallocate is called with the local number of rows
+A.Reallocate(n, n);
+
+// for local interaction, you can use AddInteraction
+A.AddInteraction(i, j, val);
+
+// when the column is distant, you can use AddDistantInteraction
+A.AddDistantInteraction(i, jglob, proc, val);
+
+// when the row is distant, you can use AddRowDistantInteraction
+A.AddRowDistantInteraction(iglob, j, proc, val);
+
+// you can write the matrix in files
+A.Write("mat.dat");
+\endprecode
+
+
+<h4>Location :</h4>
+<p>DistributedMatrix.hxx<br/>
+DistributedMatrix.cxx</p>
+
+
+
+<div class="separator"><a name="WriteText"></a></div>
+
+
+
+<h3>WriteText</h3>
+
+<h4>Syntax</h4>
+
+<pre class="syntax-box">
+  void WriteText(string) const;
+  void WriteText(ostream&amp;) const;
+</pre>
+
+<p>
+This member function writes the matrix on files or output
+streams in text format. Each processor writes its part of the matrix on a different
+file (ending with _P0.dat, _P1.dat, etc). 
+</p>
+
+
+
+<h4>Example : </h4>
+\precode
+// default constructor
+DistributedMatrix<double, General, ArrayRowSparse> A;
+
+// then Reallocate is called with the local number of rows
+A.Reallocate(n, n);
+
+// for local interaction, you can use AddInteraction
+A.AddInteraction(i, j, val);
+
+// when the column is distant, you can use AddDistantInteraction
+A.AddDistantInteraction(i, jglob, proc, val);
+
+// when the row is distant, you can use AddRowDistantInteraction
+A.AddRowDistantInteraction(iglob, j, proc, val);
+
+// you can write the matrix in files
+// the matrix here will be written in files mat_P0.dat, mat_P1.dat, etc
+A.WriteText("mat.dat");
+\endprecode
+
+
+<h4>Location :</h4>
+<p>DistributedMatrix.hxx<br/>
+DistributedMatrix.cxx</p>
+
+
+
+<div class="separator"><a name="Read"></a></div>
+
+
+
+<h3>Read</h3>
+
+<h4>Syntax</h4>
+
+<pre class="syntax-box">
+  void Read(string);
+  void Read(istream&amp;);
+</pre>
+
+<p>
+This member function is not implemented for distributed matrices
+</p>
+
+
+
+<h4>Example : </h4>
+\precode
+// default constructor
+DistributedMatrix<double, General, ArrayRowSparse> A;
+
+// then Reallocate is called with the local number of rows
+A.Reallocate(n, n);
+
+// for local interaction, you can use AddInteraction
+A.AddInteraction(i, j, val);
+
+// when the column is distant, you can use AddDistantInteraction
+A.AddDistantInteraction(i, jglob, proc, val);
+
+// when the row is distant, you can use AddRowDistantInteraction
+A.AddRowDistantInteraction(iglob, j, proc, val);
+
+\endprecode
+
+
+<h4>Location :</h4>
+<p>DistributedMatrix.hxx<br/>
+DistributedMatrix.cxx</p>
+
+
+
+<div class="separator"><a name="ReadText"></a></div>
+
+
+
+<h3>ReadText</h3>
+
+<h4>Syntax</h4>
+
+<pre class="syntax-box">
+  void ReadText(string);
+  void ReadText(istream&amp;);
+</pre>
+
+<p>
+This member function is not implemented for distributed matrices
+</p>
+
+
+
+<h4>Example : </h4>
+\precode
+// default constructor
+DistributedMatrix<double, General, ArrayRowSparse> A;
+
+// then Reallocate is called with the local number of rows
+A.Reallocate(n, n);
+
+// for local interaction, you can use AddInteraction
+A.AddInteraction(i, j, val);
+
+// when the column is distant, you can use AddDistantInteraction
+A.AddDistantInteraction(i, jglob, proc, val);
+
+// when the row is distant, you can use AddRowDistantInteraction
+A.AddRowDistantInteraction(iglob, j, proc, val);
+
+\endprecode
+
+
+<h4>Location :</h4>
+<p>DistributedMatrix.hxx<br/>
+DistributedMatrix.cxx</p>
+
+
+
+<div class="separator"><a name="Mlt"></a></div>
+
+
+
+<h3>Mlt</h3>
+
+<h4>Syntax</h4>
+
+<pre class="syntax-box">
+  void Mlt(const DistributedMatrix&lt;T&gt;&amp; A, const Vector&lt;T&gt;&amp; x, Vector&lt;T&gt;&amp; y, bool assemble); 
+  void Mlt(const SeldonTranspose&amp; trans, const DistributedMatrix&lt;T&gt;&amp; A, const Vector&lt;T&gt;&amp; x, Vector&lt;T&gt;&amp; y, bool assemble); 
+  void Mlt(const T&amp; alpha, DistributedMatrix&lt;T&gt;&amp; A); 
+</pre>
+
+<p>
+This function can perform matrix-vector product (with the original
+matrix or with its transpose) and can be used to multiply the matrix
+by a scalar. The matrix-matrix product is currently not
+implemented. If the communicator contains only one processor, the
+sequential function Mlt (with the class Matrix) will be called,
+otherwise an error will be displayed during the execution.
+</p>
+
+
+
+<h4>Example : </h4>
+\precode
+// default constructor
+DistributedMatrix<double, General, ArrayRowSparse> A;
+
+// global row numbers are provided with Init (glob_number)
+A.Init(nglob, &glob_number, &OverlapRow, &original_proc,
+       Nvol, nb_u, &ProcShared, &SharedRows, MPI::COMM_WORLD);
+
+// then Reallocate is called with the local number of rows
+A.Reallocate(n, n);
+
+// for local interaction, you can use AddInteraction
+A.AddInteraction(i, j, val);
+
+// when the column is distant, you can use AddDistantInteraction
+A.AddDistantInteraction(i, jglob, proc, val);
+
+// when the row is distant, you can use AddRowDistantInteraction
+A.AddRowDistantInteraction(iglob, j, proc, val);
+
+// once the matrix is constructed, matrix-vector products can be performed
+// each vector is stored as a usual Seldon vector (class Vector)
+// each processor is assumed to store the values of the vector for the
+// global rows given during the construction of the matrix (here, the array glob_number)
+Vector<double> x(n), y(n), z;
+
+// Mlt will assume that the values of x for rows that are shared between processors are the same
+// which is here not the case when calling FillRand
+x.FillRand();
+y.FillRand();
+z = y;
+
+// a solution is to call AssembleVector to ensure this property
+AssembleVector(x, MPI::SUM, ProcShared, SharedRows, MPI::COMM_WORLD, Nvol, nb_u, 23);
+
+// classical matrix-vector product y = A x
+// the default value of the last argument (assemble) is true
+// the result y is assembled and will contain the same result as a sequential matrix-vector product,
+// the values being distributed in the different processors
+Mlt(A, x, y);
+
+// assemble = true, induces a final call to the function AssembleVector (to add values of shared rows)
+// if the user wants to perform a matrix-vector product without performing this final assembling step, he puts false in the last optional argument
+Mlt(A, x, z, false);
+
+// and perform the assembling phase later
+AssembleVector(z, MPI::SUM, ProcShared, SharedRows, MPI::COMM_WORLD, Nvol, nb_u, 23);
+
+// Mlt can be used to perform a matrix-vector with the transpose matrix or the transpose conjugate
+Mlt(SeldonTrans, A, x, y);
+
+// Finally Mlt can be used to multiply a distributed matrix by a scalar coefficient
+Mlt(-2.1, A);
+\endprecode
+
+
+<h4>Location :</h4>
+<p>DistributedMatrix.hxx<br/>
+DistributedMatrix.cxx</p>
+
+
+
+<div class="separator"><a name="MltAdd"></a></div>
+
+
+
+<h3>MltAdd</h3>
+
+<h4>Syntax</h4>
+
+<pre class="syntax-box">
+  void MltAdd(const T&amp; alpha, const DistributedMatrix&lt;T&gt;&amp; A, const Vector&lt;T&gt;&amp; x, const T&amp; beta, Vector&lt;T&gt;&amp; y, bool assemble); 
+  void MltAdd(const T&amp; alpha, const SeldonTranspose&amp;, const DistributedMatrix&lt;T&gt;&amp; A, const Vector&lt;T&gt;&amp; x, const T&amp; beta, Vector&lt;T&gt;&amp; y, bool assemble); 
+</pre>
+
+<p>
+This function can perform matrix-vector product (with the original
+matrix or with its transpose). The matrix-matrix product is currently not
+implemented. If the communicator contains only one processor, the
+sequential function MltAdd (with the class Matrix) will be called,
+otherwise an error will be displayed during the execution.
+</p>
+
+
+
+<h4>Example : </h4>
+
+\precode
+// default constructor
+DistributedMatrix<double, General, ArrayRowSparse> A;
+
+// global row numbers are provided with Init (glob_number)
+A.Init(nglob, &glob_number, &OverlapRow, &original_proc,
+       Nvol, nb_u, &ProcShared, &SharedRows, MPI::COMM_WORLD);
+
+// then Reallocate is called with the local number of rows
+A.Reallocate(n, n);
+
+// for local interaction, you can use AddInteraction
+A.AddInteraction(i, j, val);
+
+// when the column is distant, you can use AddDistantInteraction
+A.AddDistantInteraction(i, jglob, proc, val);
+
+// when the row is distant, you can use AddRowDistantInteraction
+A.AddRowDistantInteraction(iglob, j, proc, val);
+
+// once the matrix is constructed, matrix-vector products can be performed
+// each vector is stored as a usual Seldon vector (class Vector)
+// each processor is assumed to store the values of the vector for the
+// global rows given during the construction of the matrix (here, the array glob_number)
+Vector<double> x(n), y(n), z;
+
+// MltAdd will assume that the values of x for rows that are shared between processors are the same
+// which is here not the case when calling FillRand
+x.FillRand();
+y.FillRand();
+z = y;
+
+// a solution is to call AssembleVector to ensure this property
+AssembleVector(x, MPI::SUM, ProcShared, SharedRows, MPI::COMM_WORLD, Nvol, nb_u, 23);
+
+double alpha = 2.5, beta = 0.4;
+
+// matrix-vector product y = beta y + alpha A x
+// the default value of the last argument (assemble) is true
+// the result y is assembled and will contain the same result as a sequential matrix-vector product,
+// the values being distributed in the different processors
+MltAdd(alpha, A, x, beta, y);
+
+// assemble = true, induces a final call to the function AssembleVector (to add values of shared rows)
+// if the user wants to perform a matrix-vector product without performing this final assembling step, he puts false in the last optional argument
+MltAdd(alpha, A, x, beta, z, false);
+
+// and perform the assembling phase later
+AssembleVector(z, MPI::SUM, ProcShared, SharedRows, MPI::COMM_WORLD, Nvol, nb_u, 23);
+
+// MltAdd can be used to perform a matrix-vector with the transpose matrix or the transpose conjugate
+MltAdd(alpha, SeldonTrans, A, x, beta, y);
+\endprecode
+
+
+<h4>Location :</h4>
+<p>DistributedMatrix.hxx<br/>
+DistributedMatrix.cxx</p>
+
+
+
+<div class="separator"><a name="Add"></a></div>
+
+
+
+<h3>Add</h3>
+
+<h4>Syntax</h4>
+
+<pre class="syntax-box">
+  void Add(const T&amp; alpha, const DistributedMatrix&lt;T&gt;&amp; A, DistributedMatrix&lt;T&gt;&amp; B); 
+</pre>
+
+<p>
+This function adds a distributed matrix multiplied by a scalar to another
+distributed matrix. The two matrices are assumed to have the same
+global row numbers.
+</p>
+
+
+
+<h4>Example : </h4>
+
+\precode
+// default constructor
+DistributedMatrix<double, General, ArrayRowSparse> A;
+
+// global row numbers are provided with Init (glob_number)
+A.Init(nglob, &glob_number, &OverlapRow, &original_proc,
+       Nvol, nb_u, &ProcShared, &SharedRows, MPI::COMM_WORLD);
+
+// then Reallocate is called with the local number of rows
+A.Reallocate(n, n);
+
+// for local interaction, you can use AddInteraction
+A.AddInteraction(i, j, val);
+
+// when the column is distant, you can use AddDistantInteraction
+A.AddDistantInteraction(i, jglob, proc, val);
+
+// when the row is distant, you can use AddRowDistantInteraction
+A.AddRowDistantInteraction(iglob, j, proc, val);
+
+// a way to have the same global row numbers
+// is to use Init with the matrix A
+DistributedMatrix<double, General, ArrayRowSparse> B;
+
+B.Init(A);
+
+double alpha = 2.1;
+// we compute B = B + alpha A
+Add(alpha, A, B);
+\endprecode
+
+
+<h4>Location :</h4>
+<p>DistributedMatrix.hxx<br/>
+DistributedMatrix.cxx</p>
+
+
+
+<div class="separator"><a name="MaxAbs"></a></div>
+
+
+
+<h3>MaxAbs</h3>
+
+<h4>Syntax</h4>
+
+<pre class="syntax-box">
+  Treal MaxAbs(const DistributedMatrix&lt;T&gt;&amp; A);
+</pre>
+
+<p>
+This function returns the maximum absolute value of non-zero entries
+of a distributed matrix A. Currently the implemented function is not
+equivalent to the sequential function because of shared rows. It can
+be used to have an estimation of the actual maximum absolute value,
+but it will not return the exact value.
+</p>
+
+
+
+<h4>Example : </h4>
+
+\precode
+// default constructor
+DistributedMatrix<double, General, ArrayRowSparse> A;
+
+// global row numbers are provided with Init (glob_number)
+A.Init(nglob, &glob_number, &OverlapRow, &original_proc,
+       Nvol, nb_u, &ProcShared, &SharedRows, MPI::COMM_WORLD);
+
+// then Reallocate is called with the local number of rows
+A.Reallocate(n, n);
+
+// for local interaction, you can use AddInteraction
+A.AddInteraction(i, j, val);
+
+// when the column is distant, you can use AddDistantInteraction
+A.AddDistantInteraction(i, jglob, proc, val);
+
+// when the row is distant, you can use AddRowDistantInteraction
+A.AddRowDistantInteraction(iglob, j, proc, val);
+
+// we estimate the maximum non-zero entry (modulus)
+double maxA = MaxAbs(A);
+\endprecode
+
+
+<h4>Location :</h4>
+<p>DistributedMatrix.hxx<br/>
+DistributedMatrix.cxx</p>
+
+
+
+<div class="separator"><a name="GetRowSum"></a></div>
+
+
+
+<h3>GetRowSum</h3>
+
+<h4>Syntax</h4>
+
+<pre class="syntax-box">
+  void GetRowSum(Vector&lt;Treal&gt;&amp; sumA, const DistributedMatrix&lt;T&gt;&amp; A);
+</pre>
+
+<p>
+This function computes in sumA the sum of absolute values of a_ij for
+each row i. Currently the implemented function is not
+equivalent to the sequential function because of shared rows. It can
+be used to have an estimation of the exact sum.
+</p>
+
+
+
+<h4>Example : </h4>
+
+\precode
+// default constructor
+DistributedMatrix<double, General, ArrayRowSparse> A;
+
+// global row numbers are provided with Init (glob_number)
+A.Init(nglob, &glob_number, &OverlapRow, &original_proc,
+       Nvol, nb_u, &ProcShared, &SharedRows, MPI::COMM_WORLD);
+
+// then Reallocate is called with the local number of rows
+A.Reallocate(n, n);
+
+// for local interaction, you can use AddInteraction
+A.AddInteraction(i, j, val);
+
+// when the column is distant, you can use AddDistantInteraction
+A.AddDistantInteraction(i, jglob, proc, val);
+
+// when the row is distant, you can use AddRowDistantInteraction
+A.AddRowDistantInteraction(iglob, j, proc, val);
+
+// we estimate \sum_j |a_{i,j}| for each row i
+Vector<double> sumA;
+GetRowSum(sumA, A);
+\endprecode
+
+
+<h4>Location :</h4>
+<p>DistributedMatrix.hxx<br/>
+DistributedMatrix.cxx</p>
+
+
+
+<div class="separator"><a name="GetColSum"></a></div>
+
+
+
+<h3>GetColSum</h3>
+
+<h4>Syntax</h4>
+
+<pre class="syntax-box">
+  void GetColSum(Vector&lt;Treal&gt;&amp; sumA, const DistributedMatrix&lt;T&gt;&amp; A);
+</pre>
+
+<p>
+This function computes in sumA the sum of absolute values of a_ij for
+each column j. Currently the implemented function is not
+equivalent to the sequential function because of shared rows. It can
+be used to have an estimation of the exact sum.
+</p>
+
+
+
+<h4>Example : </h4>
+
+\precode
+// default constructor
+DistributedMatrix<double, General, ArrayRowSparse> A;
+
+// global row numbers are provided with Init (glob_number)
+A.Init(nglob, &glob_number, &OverlapRow, &original_proc,
+       Nvol, nb_u, &ProcShared, &SharedRows, MPI::COMM_WORLD);
+
+// then Reallocate is called with the local number of rows
+A.Reallocate(n, n);
+
+// for local interaction, you can use AddInteraction
+A.AddInteraction(i, j, val);
+
+// when the column is distant, you can use AddDistantInteraction
+A.AddDistantInteraction(i, jglob, proc, val);
+
+// when the row is distant, you can use AddRowDistantInteraction
+A.AddRowDistantInteraction(iglob, j, proc, val);
+
+// we estimate \sum_i |a_{i,j}| for each column j
+Vector<double> sumA;
+GetColSum(sumA, A);
+\endprecode
+
+
+<h4>Location :</h4>
+<p>DistributedMatrix.hxx<br/>
+DistributedMatrix.cxx</p>
+
+
+
+<div class="separator"><a name="GetRowColSum"></a></div>
+
+
+
+<h3>GetRowColSum</h3>
+
+<h4>Syntax</h4>
+
+<pre class="syntax-box">
+  void GetRowColSum(Vector&lt;Treal&gt;&amp; rowA, Vector&lt;Treal&gt;&amp; colA, const DistributedMatrix&lt;T&gt;&amp; A);
+</pre>
+
+<p>
+This function computes in rowA the sum of absolute values of a_ij for
+each row i and in colA the sum of absolute values for each column
+j. Currently the implemented function is not equivalent to the
+sequential function because of shared rows. It can be used to have an estimation of the exact sum.
+</p>
+
+
+
+<h4>Example : </h4>
+
+\precode
+// default constructor
+DistributedMatrix<double, General, ArrayRowSparse> A;
+
+// global row numbers are provided with Init (glob_number)
+A.Init(nglob, &glob_number, &OverlapRow, &original_proc,
+       Nvol, nb_u, &ProcShared, &SharedRows, MPI::COMM_WORLD);
+
+// then Reallocate is called with the local number of rows
+A.Reallocate(n, n);
+
+// for local interaction, you can use AddInteraction
+A.AddInteraction(i, j, val);
+
+// when the column is distant, you can use AddDistantInteraction
+A.AddDistantInteraction(i, jglob, proc, val);
+
+// when the row is distant, you can use AddRowDistantInteraction
+A.AddRowDistantInteraction(iglob, j, proc, val);
+
+// we estimate \sum |a_{i,j}| for each row i and column j
+Vector<double> rowA, colA;
+GetRowColSum(rowA, colA, A);
+\endprecode
+
+
+<h4>Location :</h4>
+<p>DistributedMatrix.hxx<br/>
+DistributedMatrix.cxx</p>
+
+
+
+<div class="separator"><a name="Norm1"></a></div>
+
+
+
+<h3>Norm1</h3>
+
+<h4>Syntax</h4>
+
+<pre class="syntax-box">
+  Treal Norm1(const DistributedMatrix&lt;T&gt;&amp; A);
+</pre>
+
+<p>
+This function returns an estimation of the 1-norm of a distributed
+matrix A. Currently the implemented function is not equivalent to the
+sequential function because of shared rows. It can be used to have an
+estimation of the actual 1-norm, but it will not return the exact value.
+</p>
+
+
+
+<h4>Example : </h4>
+
+\precode
+// default constructor
+DistributedMatrix<double, General, ArrayRowSparse> A;
+
+// global row numbers are provided with Init (glob_number)
+A.Init(nglob, &glob_number, &OverlapRow, &original_proc,
+       Nvol, nb_u, &ProcShared, &SharedRows, MPI::COMM_WORLD);
+
+// then Reallocate is called with the local number of rows
+A.Reallocate(n, n);
+
+// for local interaction, you can use AddInteraction
+A.AddInteraction(i, j, val);
+
+// when the column is distant, you can use AddDistantInteraction
+A.AddDistantInteraction(i, jglob, proc, val);
+
+// when the row is distant, you can use AddRowDistantInteraction
+A.AddRowDistantInteraction(iglob, j, proc, val);
+
+// we estimate the 1-norm
+double maxA = Norm1(A);
+\endprecode
+
+
+<h4>Location :</h4>
+<p>DistributedMatrix.hxx<br/>
+DistributedMatrix.cxx</p>
+
+
+
+<div class="separator"><a name="NormInf"></a></div>
+
+
+
+<h3>NormInf</h3>
+
+<h4>Syntax</h4>
+
+<pre class="syntax-box">
+  Treal NormInf(const DistributedMatrix&lt;T&gt;&amp; A);
+</pre>
+
+<p>
+This function returns an estimation of the infinite norm of a distributed
+matrix A. Currently the implemented function is not equivalent to the
+sequential function because of shared rows. It can be used to have an
+estimation of the actual infinite norm, but it will not return the exact value.
+</p>
+
+
+
+<h4>Example : </h4>
+
+\precode
+// default constructor
+DistributedMatrix<double, General, ArrayRowSparse> A;
+
+// global row numbers are provided with Init (glob_number)
+A.Init(nglob, &glob_number, &OverlapRow, &original_proc,
+       Nvol, nb_u, &ProcShared, &SharedRows, MPI::COMM_WORLD);
+
+// then Reallocate is called with the local number of rows
+A.Reallocate(n, n);
+
+// for local interaction, you can use AddInteraction
+A.AddInteraction(i, j, val);
+
+// when the column is distant, you can use AddDistantInteraction
+A.AddDistantInteraction(i, jglob, proc, val);
+
+// when the row is distant, you can use AddRowDistantInteraction
+A.AddRowDistantInteraction(iglob, j, proc, val);
+
+// we estimate the infinite norm
+double maxA = NormInf(A);
+\endprecode
+
+
+<h4>Location :</h4>
+<p>DistributedMatrix.hxx<br/>
+DistributedMatrix.cxx</p>
+
+
+
+<div class="separator"><a name="Transpose"></a></div>
+
+
+
+<h3>Transpose</h3>
+
+<h4>Syntax</h4>
+
+<pre class="syntax-box">
+  void Transpose(DistributedMatrix&lt;T&gt;&amp; A);
+  void Transpose(const DistributedMatrix&lt;T&gt;&amp; A, DistributedMatrix&lt;T&gt;&amp; B);
+</pre>
+
+<p>
+This function transposes a distributed matrix.
+</p>
+
+
+
+<h4>Example : </h4>
+
+\precode
+// default constructor
+DistributedMatrix<double, General, ArrayRowSparse> A;
+
+// global row numbers are provided with Init (glob_number)
+A.Init(nglob, &glob_number, &OverlapRow, &original_proc,
+       Nvol, nb_u, &ProcShared, &SharedRows, MPI::COMM_WORLD);
+
+// then Reallocate is called with the local number of rows
+A.Reallocate(n, n);
+
+// for local interaction, you can use AddInteraction
+A.AddInteraction(i, j, val);
+
+// when the column is distant, you can use AddDistantInteraction
+A.AddDistantInteraction(i, jglob, proc, val);
+
+// when the row is distant, you can use AddRowDistantInteraction
+A.AddRowDistantInteraction(iglob, j, proc, val);
+
+// A can be replaced by its transpose :
+Transpose(A);
+
+// the transpose can also be computed into another matrix
+DistributedMatrix<double, General, ArrayRowSparse> B;
+
+Transpose(A, B);
+\endprecode
+
+
+<h4>Location :</h4>
+<p>DistributedMatrix.hxx<br/>
+DistributedMatrix.cxx</p>
+
+
+
+<div class="separator"><a name="Conjugate"></a></div>
+
+
+
+<h3>Conjugate</h3>
+
+<h4>Syntax</h4>
+
+<pre class="syntax-box">
+  void Conjugate(DistributedMatrix&lt;T&gt;&amp; A);
+</pre>
+
+<p>
+This function conjugates a distributed matrix.
+</p>
+
+
+
+<h4>Example : </h4>
+
+\precode
+// default constructor
+DistributedMatrix<double, General, ArrayRowSparse> A;
+
+// global row numbers are provided with Init (glob_number)
+A.Init(nglob, &glob_number, &OverlapRow, &original_proc,
+       Nvol, nb_u, &ProcShared, &SharedRows, MPI::COMM_WORLD);
+
+// then Reallocate is called with the local number of rows
+A.Reallocate(n, n);
+
+// for local interaction, you can use AddInteraction
+A.AddInteraction(i, j, val);
+
+// when the column is distant, you can use AddDistantInteraction
+A.AddDistantInteraction(i, jglob, proc, val);
+
+// when the row is distant, you can use AddRowDistantInteraction
+A.AddRowDistantInteraction(iglob, j, proc, val);
+
+// A can be replaced by its conjugate:
+Conjugate(A);
+\endprecode
+
+
+<h4>Location :</h4>
+<p>DistributedMatrix.hxx<br/>
+DistributedMatrix.cxx</p>
+
+
+
+<div class="separator"><a name="TransposeConj"></a></div>
+
+
+
+<h3>TransposeConj</h3>
+
+<h4>Syntax</h4>
+
+<pre class="syntax-box">
+  void TransposeConj(DistributedMatrix&lt;T&gt;&amp; A);
+  void TransposeConj(const DistributedMatrix&lt;T&gt;&amp; A, DistributedMatrix&lt;T&gt;&amp; B);
+</pre>
+
+<p>
+This function transposes and conjugates a distributed matrix.
+</p>
+
+
+
+<h4>Example : </h4>
+
+\precode
+// default constructor
+DistributedMatrix<double, General, ArrayRowSparse> A;
+
+// global row numbers are provided with Init (glob_number)
+A.Init(nglob, &glob_number, &OverlapRow, &original_proc,
+       Nvol, nb_u, &ProcShared, &SharedRows, MPI::COMM_WORLD);
+
+// then Reallocate is called with the local number of rows
+A.Reallocate(n, n);
+
+// for local interaction, you can use AddInteraction
+A.AddInteraction(i, j, val);
+
+// when the column is distant, you can use AddDistantInteraction
+A.AddDistantInteraction(i, jglob, proc, val);
+
+// when the row is distant, you can use AddRowDistantInteraction
+A.AddRowDistantInteraction(iglob, j, proc, val);
+
+// A can be replaced by its transpose conjugate :
+TransposeConj(A);
+
+// the transpose conjugate can also be computed into another matrix
+DistributedMatrix<double, General, ArrayRowSparse> B;
+
+TransposeConj(A, B);
+\endprecode
+
+
+<h4>Location :</h4>
+<p>DistributedMatrix.hxx<br/>
+DistributedMatrix.cxx</p>
+
+
+
+<div class="separator"><a name="GetRow"></a></div>
+
+
+
+<h3>GetRow</h3>
+
+<h4>Syntax</h4>
+
+<pre class="syntax-box">
+  void GetRow(const DistributedMatrix&lt;T&gt;&amp; A, int, Vector&lt;T, VectSparse&gt;&amp;);
+</pre>
+
+<p>
+This function is not implemented for distributed matrices. If the
+communicator has only one processor, the sequential function is
+called, otherwise an error is displayed.
+</p>
+
+
+
+<h4>Example : </h4>
+
+\precode
+// default constructor
+DistributedMatrix<double, General, ArrayRowSparse> A;
+
+// global row numbers are provided with Init (glob_number)
+A.Init(nglob, &glob_number, &OverlapRow, &original_proc,
+       Nvol, nb_u, &ProcShared, &SharedRows, MPI::COMM_WORLD);
+
+// then Reallocate is called with the local number of rows
+A.Reallocate(n, n);
+
+// for local interaction, you can use AddInteraction
+A.AddInteraction(i, j, val);
+
+// when the column is distant, you can use AddDistantInteraction
+A.AddDistantInteraction(i, jglob, proc, val);
+
+// when the row is distant, you can use AddRowDistantInteraction
+A.AddRowDistantInteraction(iglob, j, proc, val);
+\endprecode
+
+
+<h4>Location :</h4>
+<p>DistributedMatrix.hxx<br/>
+  DistributedMatrix.cxx</p>
+
+
+
+<div class="separator"><a name="GetCol"></a></div>
+
+
+
+<h3>GetCol</h3>
+
+<h4>Syntax</h4>
+
+<pre class="syntax-box">
+  void GetCol(const DistributedMatrix&lt;T&gt;&amp; A, int, Vector&lt;T, VectSparse&gt;&amp;);
+</pre>
+
+<p>
+This function is not implemented for distributed matrices. If the
+communicator has only one processor, the sequential function is
+called, otherwise an error is displayed.
+</p>
+
+
+
+<h4>Example : </h4>
+
+\precode
+// default constructor
+DistributedMatrix<double, General, ArrayRowSparse> A;
+
+// global row numbers are provided with Init (glob_number)
+A.Init(nglob, &glob_number, &OverlapRow, &original_proc,
+       Nvol, nb_u, &ProcShared, &SharedRows, MPI::COMM_WORLD);
+
+// then Reallocate is called with the local number of rows
+A.Reallocate(n, n);
+
+// for local interaction, you can use AddInteraction
+A.AddInteraction(i, j, val);
+
+// when the column is distant, you can use AddDistantInteraction
+A.AddDistantInteraction(i, jglob, proc, val);
+
+// when the row is distant, you can use AddRowDistantInteraction
+A.AddRowDistantInteraction(iglob, j, proc, val);
+\endprecode
+
+
+<h4>Location :</h4>
+<p>DistributedMatrix.hxx<br/>
+DistributedMatrix.cxx</p>
+
+
+
+<div class="separator"><a name="SetRow"></a></div>
+
+
+
+<h3>SetRow</h3>
+
+<h4>Syntax</h4>
+
+<pre class="syntax-box">
+  void SetRow(const Vector&lt;T, VectSparse&gt;&amp;, int, DistributedMatrix&lt;T&gt;&amp; A);
+</pre>
+
+<p>
+This function is not implemented for distributed matrices. If the
+communicator has only one processor, the sequential function is
+called, otherwise an error is displayed.
+</p>
+
+
+
+<h4>Example : </h4>
+
+\precode
+// default constructor
+DistributedMatrix<double, General, ArrayRowSparse> A;
+
+// global row numbers are provided with Init (glob_number)
+A.Init(nglob, &glob_number, &OverlapRow, &original_proc,
+       Nvol, nb_u, &ProcShared, &SharedRows, MPI::COMM_WORLD);
+
+// then Reallocate is called with the local number of rows
+A.Reallocate(n, n);
+
+// for local interaction, you can use AddInteraction
+A.AddInteraction(i, j, val);
+
+// when the column is distant, you can use AddDistantInteraction
+A.AddDistantInteraction(i, jglob, proc, val);
+
+// when the row is distant, you can use AddRowDistantInteraction
+A.AddRowDistantInteraction(iglob, j, proc, val);
+\endprecode
+
+
+<h4>Location :</h4>
+<p>DistributedMatrix.hxx<br/>
+  DistributedMatrix.cxx</p>
+
+
+
+<div class="separator"><a name="SetCol"></a></div>
+
+
+
+<h3>SetCol</h3>
+
+<h4>Syntax</h4>
+
+<pre class="syntax-box">
+  void SetCol(const Vector&lt;T, VectSparse&gt;&amp;, int, DistributedMatrix&lt;T&gt;&amp; A);
+</pre>
+
+<p>
+This function is not implemented for distributed matrices. If the
+communicator has only one processor, the sequential function is
+called, otherwise an error is displayed.
+</p>
+
+
+
+<h4>Example : </h4>
+
+\precode
+// default constructor
+DistributedMatrix<double, General, ArrayRowSparse> A;
+
+// global row numbers are provided with Init (glob_number)
+A.Init(nglob, &glob_number, &OverlapRow, &original_proc,
+       Nvol, nb_u, &ProcShared, &SharedRows, MPI::COMM_WORLD);
+
+// then Reallocate is called with the local number of rows
+A.Reallocate(n, n);
+
+// for local interaction, you can use AddInteraction
+A.AddInteraction(i, j, val);
+
+// when the column is distant, you can use AddDistantInteraction
+A.AddDistantInteraction(i, jglob, proc, val);
+
+// when the row is distant, you can use AddRowDistantInteraction
+A.AddRowDistantInteraction(iglob, j, proc, val);
+\endprecode
+
+
+<h4>Location :</h4>
+<p>DistributedMatrix.hxx<br/>
+  DistributedMatrix.cxx</p>
+
+
+
+<div class="separator"><a name="ApplyPermutation"></a></div>
+
+
+
+<h3>ApplyPermutation</h3>
+
+<h4>Syntax</h4>
+
+<pre class="syntax-box">
+  void ApplyPermutation(DistributedMatrix&lt;T&gt;&amp; A, const IVect&amp; row_perm, const IVect&amp; col_perm);
+</pre>
+
+<p>
+This function is not implemented for distributed matrices. If the
+communicator has only one processor, the sequential function is
+called, otherwise an error is displayed.
+</p>
+
+
+
+<h4>Example : </h4>
+
+\precode
+// default constructor
+DistributedMatrix<double, General, ArrayRowSparse> A;
+
+// global row numbers are provided with Init (glob_number)
+A.Init(nglob, &glob_number, &OverlapRow, &original_proc,
+       Nvol, nb_u, &ProcShared, &SharedRows, MPI::COMM_WORLD);
+
+// then Reallocate is called with the local number of rows
+A.Reallocate(n, n);
+
+// for local interaction, you can use AddInteraction
+A.AddInteraction(i, j, val);
+
+// when the column is distant, you can use AddDistantInteraction
+A.AddDistantInteraction(i, jglob, proc, val);
+
+// when the row is distant, you can use AddRowDistantInteraction
+A.AddRowDistantInteraction(iglob, j, proc, val);
+\endprecode
+
+
+<h4>Location :</h4>
+<p>DistributedMatrix.hxx<br/>
+  DistributedMatrix.cxx</p>
+
+
+
+<div class="separator"><a name="ApplyInversePermutation"></a></div>
+
+
+
+<h3>ApplyInversePermutation</h3>
+
+<h4>Syntax</h4>
+
+<pre class="syntax-box">
+  void ApplyInversePermutation(DistributedMatrix&lt;T&gt;&amp; A, const IVect&amp; row_perm, const IVect&amp; col_perm);
+</pre>
+
+<p>
+This function is not implemented for distributed matrices. If the
+communicator has only one processor, the sequential function is
+called, otherwise an error is displayed.
+</p>
+
+
+
+<h4>Example : </h4>
+
+\precode
+// default constructor
+DistributedMatrix<double, General, ArrayRowSparse> A;
+
+// global row numbers are provided with Init (glob_number)
+A.Init(nglob, &glob_number, &OverlapRow, &original_proc,
+       Nvol, nb_u, &ProcShared, &SharedRows, MPI::COMM_WORLD);
+
+// then Reallocate is called with the local number of rows
+A.Reallocate(n, n);
+
+// for local interaction, you can use AddInteraction
+A.AddInteraction(i, j, val);
+
+// when the column is distant, you can use AddDistantInteraction
+A.AddDistantInteraction(i, jglob, proc, val);
+
+// when the row is distant, you can use AddRowDistantInteraction
+A.AddRowDistantInteraction(iglob, j, proc, val);
+\endprecode
+
+
+<h4>Location :</h4>
+<p>DistributedMatrix.hxx<br/>
+  DistributedMatrix.cxx</p>
+
+
+
+<div class="separator"><a name="SOR"></a></div>
+
+
+
+<h3>SOR</h3>
+
+<h4>Syntax</h4>
+
+<pre class="syntax-box">
+  void SOR(const DistributedMatrix&lt;T&gt;&amp; A, Vector&lt;T&gt;&amp; X, const Vector&lt;T&gt;&amp; B, const T&amp; omega, int iter, int type_ssor);
+</pre>
+
+<p>
+This function is not implemented for distributed matrices. If the
+communicator has only one processor, the sequential function is
+called, otherwise an error is displayed.
+</p>
+
+
+
+<h4>Example : </h4>
+
+\precode
+// default constructor
+DistributedMatrix<double, General, ArrayRowSparse> A;
+
+// global row numbers are provided with Init (glob_number)
+A.Init(nglob, &glob_number, &OverlapRow, &original_proc,
+       Nvol, nb_u, &ProcShared, &SharedRows, MPI::COMM_WORLD);
+
+// then Reallocate is called with the local number of rows
+A.Reallocate(n, n);
+
+// for local interaction, you can use AddInteraction
+A.AddInteraction(i, j, val);
+
+// when the column is distant, you can use AddDistantInteraction
+A.AddDistantInteraction(i, jglob, proc, val);
+
+// when the row is distant, you can use AddRowDistantInteraction
+A.AddRowDistantInteraction(iglob, j, proc, val);
+\endprecode
+
+
+<h4>Location :</h4>
+<p>DistributedMatrix.hxx<br/>
+  DistributedMatrix.cxx</p>
+
+
+
+<div class="separator"><a name="Copy"></a></div>
+
+
+
+<h3>Copy</h3>
+
+<h4>Syntax</h4>
+
+<pre class="syntax-box">
+  void Copy(const DistributedMatrix&lt;T&gt;&amp; A, DistributedMatrix&lt;T&gt;&amp;);
+</pre>
+
+<p>
+This function converts a distributed sparse matrix into another
+one. The format can be different (RowSparse, ColSparse,
+ArrayRowSparse, etc), the local part of the matrix is
+converted by calling the appropriate Copy function (located in the
+file Matrix_Conversions.cxx), the distributed part is always stored
+with the same format.
+</p>
+
+
+
+<h4>Example : </h4>
+
+\precode
+// default constructor
+DistributedMatrix<double, General, ArrayRowSparse> A;
+
+// global row numbers are provided with Init (glob_number)
+A.Init(nglob, &glob_number, &OverlapRow, &original_proc,
+       Nvol, nb_u, &ProcShared, &SharedRows, MPI::COMM_WORLD);
+
+// then Reallocate is called with the local number of rows
+A.Reallocate(n, n);
+
+// for local interaction, you can use AddInteraction
+A.AddInteraction(i, j, val);
+
+// when the column is distant, you can use AddDistantInteraction
+A.AddDistantInteraction(i, jglob, proc, val);
+
+// when the row is distant, you can use AddRowDistantInteraction
+A.AddRowDistantInteraction(iglob, j, proc, val);
+
+// The target matrix just needs to be declared (Init is not needed since it will take the arrays provided by the original matrix A)
+DistributedMatrix<double, General, ColSparse> B;
+
+// it should be emphasized that B has a storage ColSparse and A ArrayRowSparse
+// Copy will perform a conversion
+Copy(A, B);
+\endprecode
+
+
+<h4>Location :</h4>
+<p>DistributedMatrix.hxx<br/>
+  DistributedMatrix.cxx</p>
+
+
+
+<div class="separator"><a name="GetSubMatrix"></a></div>
+
+
+
+<h3>GetSubMatrix</h3>
+
+<h4>Syntax</h4>
+
+<pre class="syntax-box">
+  void GetSubMatrix(const DistributedMatrix&lt;T&gt;&amp; A, int m, int n, DistributedMatrix&lt;T&gt;&amp; B);
+</pre>
+
+<p>
+This function is not implemented for distributed matrices. If the
+communicator has only one processor, the sequential function is
+called, otherwise an error is displayed.
+</p>
+
+
+
+<h4>Example : </h4>
+
+\precode
+// default constructor
+DistributedMatrix<double, General, ArrayRowSparse> A;
+
+// global row numbers are provided with Init (glob_number)
+A.Init(nglob, &glob_number, &OverlapRow, &original_proc,
+       Nvol, nb_u, &ProcShared, &SharedRows, MPI::COMM_WORLD);
+
+// then Reallocate is called with the local number of rows
+A.Reallocate(n, n);
+
+// for local interaction, you can use AddInteraction
+A.AddInteraction(i, j, val);
+
+// when the column is distant, you can use AddDistantInteraction
+A.AddDistantInteraction(i, jglob, proc, val);
+
+// when the row is distant, you can use AddRowDistantInteraction
+A.AddRowDistantInteraction(iglob, j, proc, val);
+\endprecode
+
+
+<h4>Location :</h4>
+<p>DistributedMatrix.hxx<br/>
+  DistributedMatrix.cxx</p>
+
+
+
+<div class="separator"><a name="NormFro"></a></div>
+
+
+
+<h3>NormFro</h3>
+
+<h4>Syntax</h4>
+
+<pre class="syntax-box">
+  Treal NormFro(const DistributedMatrix&lt;T&gt;&amp; A);
+</pre>
+
+<p>
+This function is not implemented for distributed matrices. If the
+communicator has only one processor, the sequential function is
+called, otherwise an error is displayed.
+</p>
+
+
+
+<h4>Example : </h4>
+
+\precode
+// default constructor
+DistributedMatrix<double, General, ArrayRowSparse> A;
+
+// global row numbers are provided with Init (glob_number)
+A.Init(nglob, &glob_number, &OverlapRow, &original_proc,
+       Nvol, nb_u, &ProcShared, &SharedRows, MPI::COMM_WORLD);
+
+// then Reallocate is called with the local number of rows
+A.Reallocate(n, n);
+
+// for local interaction, you can use AddInteraction
+A.AddInteraction(i, j, val);
+
+// when the column is distant, you can use AddDistantInteraction
+A.AddDistantInteraction(i, jglob, proc, val);
+
+// when the row is distant, you can use AddRowDistantInteraction
+A.AddRowDistantInteraction(iglob, j, proc, val);
+\endprecode
+
+
+<h4>Location :</h4>
+<p>DistributedMatrix.hxx<br/>
+  DistributedMatrix.cxx</p>
+
+
+
+<div class="separator"><a name="ScaleLeftMatrix"></a></div>
+
+
+
+<h3>ScaleLeftMatrix</h3>
+
+<h4>Syntax</h4>
+
+<pre class="syntax-box">
+  void ScaleLeftMatrix(DistributedMatrix&lt;T&gt;&amp; A, const Vector&lt;T&gt;&amp; scale);
+</pre>
+
+<p>
+This function scales each row of the matrix by a given coefficient.
+</p>
+
+
+
+<h4>Example : </h4>
+
+\precode
+// default constructor
+DistributedMatrix<double, General, ArrayRowSparse> A;
+
+// global row numbers are provided with Init (glob_number)
+A.Init(nglob, &glob_number, &OverlapRow, &original_proc,
+       Nvol, nb_u, &ProcShared, &SharedRows, MPI::COMM_WORLD);
+
+// then Reallocate is called with the local number of rows
+A.Reallocate(n, n);
+
+// for local interaction, you can use AddInteraction
+A.AddInteraction(i, j, val);
+
+// when the column is distant, you can use AddDistantInteraction
+A.AddDistantInteraction(i, jglob, proc, val);
+
+// when the row is distant, you can use AddRowDistantInteraction
+A.AddRowDistantInteraction(iglob, j, proc, val);
+
+// we get the sum of absolute values for each row
+Vector<double> scale(n);
+GetRowSum(scale, A);
+
+// here the values of scale for shared rows should be the same
+// this is case for the result of GetRowSum
+for (int i = 0; i < n; i++)
+  scale(i) = 1.0/scale(i);
+
+// the row i of the matrix is multiplied by scale(i)
+ScaleLeftMatrix(A, scale);
+\endprecode
+
+
+<h4>Location :</h4>
+<p>DistributedMatrix.hxx<br/>
+  DistributedMatrix.cxx</p>
+
+
+
+<div class="separator"><a name="ScaleRightMatrix"></a></div>
+
+
+
+<h3>ScaleRightMatrix</h3>
+
+<h4>Syntax</h4>
+
+<pre class="syntax-box">
+  void ScaleRightMatrix(DistributedMatrix&lt;T&gt;&amp; A, const Vector&lt;T&gt;&amp; scale);
+</pre>
+
+<p>
+This function scales each column of the matrix by a given coefficient.
+</p>
+
+
+
+<h4>Example : </h4>
+
+\precode
+// default constructor
+DistributedMatrix<double, General, ArrayRowSparse> A;
+
+// global row numbers are provided with Init (glob_number)
+A.Init(nglob, &glob_number, &OverlapRow, &original_proc,
+       Nvol, nb_u, &ProcShared, &SharedRows, MPI::COMM_WORLD);
+
+// then Reallocate is called with the local number of rows
+A.Reallocate(n, n);
+
+// for local interaction, you can use AddInteraction
+A.AddInteraction(i, j, val);
+
+// when the column is distant, you can use AddDistantInteraction
+A.AddDistantInteraction(i, jglob, proc, val);
+
+// when the row is distant, you can use AddRowDistantInteraction
+A.AddRowDistantInteraction(iglob, j, proc, val);
+
+// we get the sum of absolute values for each column
+Vector<double> scale(n);
+GetColSum(scale, A);
+
+// here the values of scale for shared rows should be the same
+// this is case for the result of GetColSum
+for (int i = 0; i < n; i++)
+  scale(i) = 1.0/scale(i);
+
+// the column i of the matrix is multiplied by scale(i)
+ScaleRightMatrix(A, scale);
+\endprecode
+
+
+<h4>Location :</h4>
+<p>DistributedMatrix.hxx<br/>
+  DistributedMatrix.cxx</p>
+
+
+
+<div class="separator"><a name="ScaleMatrix"></a></div>
+
+
+
+<h3>ScaleMatrix</h3>
+
+<h4>Syntax</h4>
+
+<pre class="syntax-box">
+  void ScaleMatrix(DistributedMatrix&lt;T&gt;&amp; A, const Vector&lt;T&gt;&amp; scale_row, const Vector&lt;T&gt;&amp; scale_col);
+</pre>
+
+<p>
+This function scales each row and column of the matrix by a given coefficient.
+</p>
+
+
+
+<h4>Example : </h4>
+
+\precode
+// default constructor
+DistributedMatrix<double, General, ArrayRowSparse> A;
+
+// global row numbers are provided with Init (glob_number)
+A.Init(nglob, &glob_number, &OverlapRow, &original_proc,
+       Nvol, nb_u, &ProcShared, &SharedRows, MPI::COMM_WORLD);
+
+// then Reallocate is called with the local number of rows
+A.Reallocate(n, n);
+
+// for local interaction, you can use AddInteraction
+A.AddInteraction(i, j, val);
+
+// when the column is distant, you can use AddDistantInteraction
+A.AddDistantInteraction(i, jglob, proc, val);
+
+// when the row is distant, you can use AddRowDistantInteraction
+A.AddRowDistantInteraction(iglob, j, proc, val);
+
+// we get the sum of absolute values for each row and column
+Vector<double> scale_row(n), scale_col(n);
+GetRowColSum(scale_row, scale_col, A);
+
+// here the values of scale for shared rows should be the same
+// this is case for the result of GetRowColSum
+for (int i = 0; i < n; i++)
+  {
+    scale_row(i) = 1.0/scale_row(i);
+    scale_col(i) = 1.0/scale_col(i);
+  }
+
+// a_ij is multiplied by scale_row(i) scale_col(j)
+ScaleMatrix(A, scale_row, scale_col);
+\endprecode
+
+
+<h4>Location :</h4>
+<p>DistributedMatrix.hxx<br/>
+  DistributedMatrix.cxx</p>
+
+
+
+<div class="separator"><a name="AssembleDistributed"></a></div>
+
+
+
+<h3>AssembleDistributed</h3>
+
+<h4>Syntax</h4>
+ <pre class="syntax-box">
+ void AssembleDistributed(DistributedMatrix&amp; A, Prop&amp; prop, const MPI::Comm&amp; comm, 
+                          IVect&amp; col_numbers, IVect&amp; local_col_numbers,
+                          IVect&amp; PtrA, IVect&amp; IndA, Vector&amp; ValA, bool sym_pattern, bool reorder);
+</pre>
+
+<p>
+This function assembles a distributed matrix A such that each
+processor has only a row (or column). col_number contains the global
+row numbers, local_col_numbers contains the local row numbers of the
+original matrix A that are kept. Values associated with overlapped
+rows and distant columns are sent to the original processor. The columns of the resulting
+distributed matrices are given in CSC format, PtrA contains the
+beginning indexes for each column, IndA the global row numbers, ValA
+the values. These arrays can be used directly by direct solvers. This
+function is called in the class DistributedSolver which interfaces
+distributed direct solvers in Seldon (such as Pastix or Mumps). If
+sym_pattern is true, the pattern of the resulting matrix is
+symmetrized. If reorder is true, the row numbers are reordered such
+that row numbers of processor 0 are 0, 1, ..., N0-1, row numbers of
+processor 1 are N0, N0+1, ..., N0+N1-1. By default, reorder is set to false.
+reorder are false.
+</p>
+
+
+<h4>Example : </h4>
+\precode
+// default constructor
+DistributedMatrix<double, General, ArrayRowSparse> A;
+
+// then Reallocate is called with the local number of rows
+A.Reallocate(n, n);
+
+// after filling nglob, global_row, overlap_row and overlap_proc
+// calling Init in order to provide these datas
+A.Init(nglob, &global_row, &overlap_row, &overlap_proc, MPI::COMM_WORLD);
+
+// for local interaction, you can use AddInteraction
+A.AddInteraction(i, j, val);
+
+// when the column is distant, you can use AddDistantInteraction
+A.AddDistantInteraction(i, jglob, proc, val);
+
+// when the row is distant, you can use AddRowDistantInteraction
+A.AddRowDistantInteraction(iglob, j, proc, val);
+
+// you can assemble the matrix and retrieve columns of the matrix
+General prop;
+// if sym_pattern is true, the pattern is symmetrized (by adding 0-values if necessary), the values being unchanged
+bool sym_pattern = false;
+
+IVect col_numbers, local_col_numbers;
+IVect PtrA, IndA; Vector<double> ValA;
+// the function fills the following arrays :
+// col_numbers : global numbers of columns stored by the current processor (each column is owned by only one processor)
+// local_col_numbers : local numbers of global columns stored
+// PtrA, IndA, ValA : columns stored in CSC format (beginning of indexes, global row numbers and values) 
+AssembleDistributed(A, prop, A.GetCommunicator(),
+                    col_numbers, local_col_numbers,
+                    PtrA, IndA, ValA, sym_pattern);
+
+// for symmetric matrices, the upper part of the matrix is assembled, by rows :
+DistributedMatrix<double, Symmetric, ArrayRowSymSparse> Asym;
+Symmetric prop_sym;
+// in these case, col_numbers, local_col_numbers contains row numbers (and not columns)
+// and matrix PtrA, IndA, ValA are rows stored in CSR format
+AssembleDistributed(Asym, prop_sym, Asym.GetCommunicator(),
+                    col_numbers, local_col_numbers,
+                    PtrA, IndA, ValA, sym_pattern);
+\endprecode
+
+
+<h4>Location :</h4>
+<p>DistributedMatrix.hxx<br/>
+DistributedMatrix.cxx</p>
+
+
+
+<div class="separator"><a name="EraseRow"></a></div>
+
+
+
+<h3>EraseRow</h3>
+
+<h4>Syntax</h4>
+ <pre class="syntax-box">
+ void EraseRow(IVect&amp; num, DistributedMatrix&amp; A);
+</pre>
+
+<p>
+This function erases some rows (local row numbers are provided in num) of the matrix A.
+</p>
+
+
+<h4>Example : </h4>
+\precode
+// default constructor
+DistributedMatrix<double, General, ArrayRowSparse> A;
+
+// then Reallocate is called with the local number of rows
+A.Reallocate(n, n);
+
+// after filling nglob, global_row, overlap_row and overlap_proc
+// calling Init in order to provide these datas
+A.Init(nglob, &global_row, &overlap_row, &overlap_proc, MPI::COMM_WORLD);
+
+// for local interaction, you can use AddInteraction
+A.AddInteraction(i, j, val);
+
+// when the column is distant, you can use AddDistantInteraction
+A.AddDistantInteraction(i, jglob, proc, val);
+
+// when the row is distant, you can use AddRowDistantInteraction
+A.AddRowDistantInteraction(iglob, j, proc, val);
+
+// then you can erase some rows
+IVect num(2);
+EraseRow(num, A);
+\endprecode
+
+
+<h4>Location :</h4>
+<p>DistributedMatrix.hxx<br/>
+DistributedMatrix.cxx</p>
+
+
+
+<div class="separator"><a name="EraseCol"></a></div>
+
+
+
+<h3>EraseCol</h3>
+
+<h4>Syntax</h4>
+ <pre class="syntax-box">
+ void EraseCol(IVect&amp; num, DistributedMatrix&amp; A);
+</pre>
+
+<p>
+This function erases some columns (local column numbers are provided in num) of the matrix A.
+</p>
+
+
+<h4>Example : </h4>
+\precode
+// default constructor
+DistributedMatrix<double, General, ArrayRowSparse> A;
+
+// then Reallocate is called with the local number of rows
+A.Reallocate(n, n);
+
+// after filling nglob, global_row, overlap_row and overlap_proc
+// calling Init in order to provide these datas
+A.Init(nglob, &global_row, &overlap_row, &overlap_proc, MPI::COMM_WORLD);
+
+// for local interaction, you can use AddInteraction
+A.AddInteraction(i, j, val);
+
+// when the column is distant, you can use AddDistantInteraction
+A.AddDistantInteraction(i, jglob, proc, val);
+
+// when the row is distant, you can use AddRowDistantInteraction
+A.AddRowDistantInteraction(iglob, j, proc, val);
+
+// then you can erase some columns
+IVect num(2);
+EraseCol(num, A);
+\endprecode
+
+
+<h4>Location :</h4>
+<p>DistributedMatrix.hxx<br/>
+DistributedMatrix.cxx</p>
+
+
+
+*/
+

@@ -1,0 +1,3779 @@
+/*! \file sparse_complex_matrices.dox
+    \brief Sparse Complex Matrices.
+*/
+
+/*!
+\page sparse_complex_matrices Sparse Complex Matrices
+
+<p>Sparse complex matrices are structures for which real part and imaginary part are stored independently.
+ The aim is to reduce the required storage when the imaginary part contains much less non-zero
+ entries than the real part. These matrices are not available by default, the file "SeldonComplexMatrix.hxx"
+ has to be included in order to use those matrices . Unitary tests are present in the file <code>sparse_complex_matrices.php</code> </p>
+
+<h2>Basic declaration of easily modifiable sparse complex matrices:</h2>
+
+<i>These matrices are available only after <code>SeldonComplexMatrix.hxx</code> has been included.</i>
+
+<h4>Classes :</h4>
+<p><a>Matrix&lt;T, Prop, ArrayRowComplexSparse&gt;</a> <br/>
+<a>Matrix&lt;T, Prop, ArrayColComplexSparse&gt;</a> <br/>
+<a>Matrix&lt;T, Prop, ArrayRowSymComplexSparse&gt;</a> <br/>
+<a>Matrix&lt;T, Prop, ArrayColSymComplexSparse&gt;</a></p>
+
+
+<h4>Example :</h4>
+\precode
+#include "SeldonComplexMatrix.hxx"
+
+// sparse complex matrix of doubles
+Matrix<double, General, ArrayRowComplexSparse> A;
+
+// sparse complex symmetric matrix
+Matrix<float, Symmetric, ArrayRowSymComplexSparse> B;
+
+// changing size of the matrix
+A.Reallocate(m, n);
+
+// a_13 = a_13 + (1.5,0.7)
+A.AddInteraction(1, 3, complex<double>(1.5, 0.7));
+\endprecode
+
+
+<h2>Methods for easily modifiable sparse complex matrices :</h2>
+
+<table class="category-table">
+<tr class="category-table-tr-2">
+<td class="category-table-td"> <a href="#constructor"> Matrix constructors </a> </td> <td></td> </tr>
+<tr class="category-table-tr-1">
+ <td class="category-table-td"> <a href="#operator"> Matrix operators </a> </td> <td></td> </tr>
+<tr class="category-table-tr-2">
+ <td class="category-table-td"> <a href="#GetM"> GetM </a> </td>
+ <td class="category-table-td"> returns the number of rows in the matrix </td> </tr>
+<tr class="category-table-tr-1">
+ <td class="category-table-td"> <a href="#GetN"> GetN </a> </td>
+ <td class="category-table-td"> returns the number of columns in the matrix </td> </tr>
+<tr class="category-table-tr-2">
+ <td class="category-table-td"> <a href="#GetDataSize"> GetDataSize </a> </td>
+ <td class="category-table-td"> returns the number of elements effectively stored </td> </tr>
+ <tr class="category-table-tr-1">
+ <td class="category-table-td"> <a href="#GetMemorySize"> GetMemorySize </a> </td>
+ <td class="category-table-td"> returns the memory used to store the matrix </td> </tr>
+<tr class="category-table-tr-2">
+ <td class="category-table-td"> <a href="#GetRealDataSize"> GetRealDataSize </a> </td>
+ <td class="category-table-td"> returns the number of elements effectively stored for the real part</td> </tr>
+<tr class="category-table-tr-1">
+ <td class="category-table-td"> <a href="#GetImagDataSize"> GetImagDataSize </a> </td>
+ <td class="category-table-td"> returns the number of elements effectively stored for the imaginary part </td> </tr>
+<tr class="category-table-tr-2">
+ <td class="category-table-td"> <a href="#GetDataSize"> GetNonZeros </a> </td>
+ <td class="category-table-td"> returns the number of elements effectively stored </td> </tr>
+<tr class="category-table-tr-1">
+ <td class="category-table-td"> <a href="#GetRealDataSize"> GetRealNonZeros </a> </td>
+ <td class="category-table-td"> returns the number of elements effectively stored for the real part </td> </tr>
+<tr class="category-table-tr-2">
+ <td class="category-table-td"> <a href="#GetImagDataSize"> GetImagNonZeros </a> </td>
+ <td class="category-table-td"> returns the number of elements effectively stored for the imaginary part</td> </tr>
+<tr class="category-table-tr-1">
+ <td class="category-table-td"> <a href="#GetRealData"> GetRealData </a> </td>
+ <td class="category-table-td"> returns a pointer to the array containing the values of the real part </td> </tr>
+<tr class="category-table-tr-2">
+ <td class="category-table-td"> <a href="#GetImagData"> GetImagData </a> </td>
+ <td class="category-table-td"> returns a pointer to the array containing the values of the imaginary part</td> </tr>
+<tr class="category-table-tr-1">
+ <td class="category-table-td"> <a href="#GetRealInd"> GetRealInd </a> </td>
+ <td class="category-table-td"> returns a pointer to the array containing the column indexes of the real part </td> </tr>
+<tr class="category-table-tr-2">
+ <td class="category-table-td"> <a href="#GetImagInd"> GetImagInd </a> </td>
+ <td class="category-table-td"> returns a pointer to the array containing the column indexes of the imaginary part</td> </tr>
+<tr class="category-table-tr-1">
+ <td class="category-table-td"> <a href="#ValReal"> ValReal </a> </td>
+ <td class="category-table-td"> returns a reference to real part of A(i, j) </td> </tr>
+<tr class="category-table-tr-2">
+ <td class="category-table-td"> <a href="#ValImag"> ValImag </a> </td>
+ <td class="category-table-td"> returns a reference to imaginary part of A(i, j) </td> </tr>
+<tr class="category-table-tr-1">
+ <td class="category-table-td"> <a href="#GetReal"> GetReal </a> </td>
+ <td class="category-table-td"> returns a reference to real part of A(i, j) </td> </tr>
+<tr class="category-table-tr-2">
+ <td class="category-table-td"> <a href="#GetImag"> GetImag </a> </td>
+ <td class="category-table-td"> returns a reference to imaginary part of A(i, j) </td> </tr>
+<tr class="category-table-tr-1">
+ <td class="category-table-td"> <a href="#Set"> Set </a> </td>
+ <td class="category-table-td"> sets real and imaginary part of A(i, j) </td> </tr>
+<tr class="category-table-tr-2">
+ <td class="category-table-td"> <a href="#NullifyReal"> NullifyReal </a> </td>
+ <td class="category-table-td"> removes real part of the matrix without releasing memory</td> </tr>
+<tr class="category-table-tr-1">
+ <td class="category-table-td"> <a href="#NullifyImag"> NullifyImag </a> </td>
+ <td class="category-table-td"> removes imaginary part of the matrix without releasing memory</td> </tr>
+<tr class="category-table-tr-2">
+ <td class="category-table-td"> <a href="#SetRealData"> SetRealData </a> </td>
+ <td class="category-table-td"> sets real part of the matrix </td> </tr>
+<tr class="category-table-tr-1">
+ <td class="category-table-td"> <a href="#SetImagData"> SetImagData </a> </td>
+ <td class="category-table-td"> sets imaginary part of the matrix </td> </tr>
+<tr class="category-table-tr-2">
+ <td class="category-table-td"> <a href="#Clear"> Clear </a> </td>
+ <td class="category-table-td"> removes all elements of the matrix </td> </tr>
+<tr class="category-table-tr-1">
+ <td class="category-table-td"> <a href="#Reallocate"> Reallocate </a> </td>
+ <td class="category-table-td"> changes the size of matrix (does not
+ keep previous elements) </td> </tr>
+<tr class="category-table-tr-2">
+ <td class="category-table-td"> <a href="#Resize"> Resize </a> </td>
+ <td class="category-table-td"> changes the size of matrix (keeps previous elements) </td> </tr>
+<tr class="category-table-tr-1">
+ <td class="category-table-td"> <a href="#ValueReal"> ValueReal </a> </td>
+ <td class="category-table-td"> direct access to a real value</td> </tr>
+<tr class="category-table-tr-2">
+ <td class="category-table-td"> <a href="#ValueImag"> ValueImag </a> </td>
+ <td class="category-table-td"> direct access to an imaginary value</td> </tr>
+<tr class="category-table-tr-1">
+ <td class="category-table-td"> <a href="#IndexReal"> IndexReal </a> </td>
+ <td class="category-table-td"> direct access to a column number of real part</td> </tr>
+<tr class="category-table-tr-2">
+ <td class="category-table-td"> <a href="#IndexImag"> IndexImag </a> </td>
+ <td class="category-table-td"> direct access to a column number of imaginary part</td> </tr>
+<tr class="category-table-tr-1">
+ <td class="category-table-td"> <a href="#RemoveSmallEntry"> RemoveSmallEntry </a> </td>
+ <td class="category-table-td"> drops small values of the matrix</td> </tr> 
+<tr class="category-table-tr-2">
+ <td class="category-table-td"> <a href="#Zero"> Zero </a> </td>
+ <td class="category-table-td"> sets all elements to zero </td> </tr>
+<tr class="category-table-tr-1">
+ <td class="category-table-td"> <a href="#SetIdentity"> SetIdentity </a> </td>
+ <td class="category-table-td"> sets matrix to identity matrix </td> </tr>
+<tr class="category-table-tr-2">
+ <td class="category-table-td"> <a href="#Fill"> Fill </a> </td>
+ <td class="category-table-td"> sets all elements to a given value </td> </tr>
+<tr class="category-table-tr-1">
+ <td class="category-table-td"> <a href="#FillRand"> FillRand </a> </td>
+ <td class="category-table-td"> fills randomly the matrix </td> </tr>
+<tr class="category-table-tr-2">
+ <td class="category-table-td"> <a href="#ReallocateRealRow"> ReallocateRealRow / ReallocateRealColumn </a> </td>
+ <td class="category-table-td"> changes the size of a row of the real part</td> </tr>
+<tr class="category-table-tr-1">
+ <td class="category-table-td"> <a href="#ReallocateImagRow"> ReallocateImagRow / ReallocateImagColumn </a> </td>
+ <td class="category-table-td"> changes the size of a row of the imaginary part</td> </tr>
+<tr class="category-table-tr-2">
+ <td class="category-table-td"> <a href="#ResizeRealRow"> ResizeRealRow / ResizeRealColumn </a> </td>
+ <td class="category-table-td"> changes the size of a row of real part and keeps previous values</td> </tr>
+<tr class="category-table-tr-1">
+ <td class="category-table-td"> <a href="#ResizeImagRow"> ResizeImagRow / ResizeImagColumn </a> </td>
+ <td class="category-table-td"> changes the size of a row of imaginary part and keeps previous values</td> </tr>
+<tr class="category-table-tr-2">
+ <td class="category-table-td"> <a href="#ClearRealRow"> ClearRealRow / ClearRealColumn </a> </td>
+ <td class="category-table-td"> clears a row of real part</td> </tr>
+<tr class="category-table-tr-1">
+ <td class="category-table-td"> <a href="#ClearImagRow"> ClearImagRow / ClearImagColumn </a> </td>
+ <td class="category-table-td"> clears a row of imaginary part</td> </tr>
+<tr class="category-table-tr-2">
+ <td class="category-table-td"> <a href="#SwapRealRow"> SwapRealRow / SwapRealColumn </a> </td>
+ <td class="category-table-td"> exchanges two rows of real part</td> </tr>
+<tr class="category-table-tr-1">
+ <td class="category-table-td"> <a href="#SwapImagRow"> SwapImagRow / SwapImagColumn </a> </td>
+ <td class="category-table-td"> exchanges two rows of imaginary part</td> </tr>
+<tr class="category-table-tr-2">
+ <td class="category-table-td"> <a href="#ReplaceRealIndexRow"> ReplaceRealIndexRow / ReplaceRealIndexColumn </a> </td>
+ <td class="category-table-td"> changes column numbers of real part</td> </tr>
+<tr class="category-table-tr-1">
+ <td class="category-table-td"> <a href="#ReplaceImagIndexRow"> ReplaceImagIndexRow / ReplaceImagIndexColumn </a> </td>
+ <td class="category-table-td"> changes column numbers of imaginary part</td> </tr>
+<tr class="category-table-tr-2">
+ <td class="category-table-td"> <a href="#GetRealRowSize"> GetRealRowSize / GetRealColumnSize </a> </td>
+ <td class="category-table-td"> returns the number of elements in the row of real part </td> </tr>
+<tr class="category-table-tr-1">
+ <td class="category-table-td"> <a href="#GetImagRowSize"> GetImagRowSize / GetImagColumnSize </a> </td>
+ <td class="category-table-td"> returns the number of elements in the row of imaginary part </td> </tr>
+<tr class="category-table-tr-2">
+ <td class="category-table-td"> <a href="#PrintRealRow"> PrintRealRow / PrintRealColumn </a> </td>
+ <td class="category-table-td"> prints a row of real part</td> </tr>
+<tr class="category-table-tr-1">
+ <td class="category-table-td"> <a href="#PrintImagRow"> PrintImagRow / PrintImagColumn </a> </td>
+ <td class="category-table-td"> prints a row of imaginary part</td> </tr>
+<tr class="category-table-tr-2">
+ <td class="category-table-td"> <a href="#AssembleRealRow"> AssembleRealRow / AssembleRealColumn </a> </td>
+ <td class="category-table-td"> assembles a row of real part</td> </tr>
+<tr class="category-table-tr-1">
+ <td class="category-table-td"> <a href="#AssembleImagRow"> AssembleImagRow / AssembleImagColumn </a> </td>
+ <td class="category-table-td"> assembles a row of imaginary part</td> </tr>
+<tr class="category-table-tr-2">
+ <td class="category-table-td"> <a href="#AddInteraction"> AddInteraction </a> </td>
+ <td class="category-table-td"> adds/inserts an element in the matrix </td> </tr>
+<tr class="category-table-tr-1">
+ <td class="category-table-td"> <a href="#AddInteractionRow"> AddInteractionRow </a> </td>
+ <td class="category-table-td"> adds/inserts an element in a matrix row
+ </td> </tr>
+<tr class="category-table-tr-2">
+ <td class="category-table-td"> <a href="#AddInteractionColumn"> AddInteractionColumn </a> </td>
+ <td class="category-table-td"> adds/inserts elements in a matrix
+ column </td> </tr>
+<tr class="category-table-tr-1">
+ <td class="category-table-td"> <a href="#Print"> Print </a> </td>
+ <td class="category-table-td"> displays the matrix </td> </tr>
+<tr class="category-table-tr-2">
+ <td class="category-table-td"> <a href="#Write"> Write </a> </td>
+ <td class="category-table-td"> writes the vector in binary format </td> </tr>
+<tr class="category-table-tr-1">
+ <td class="category-table-td"> <a href="#Read"> Read </a> </td>
+ <td class="category-table-td"> reads the vector in binary format </td> </tr>
+<tr class="category-table-tr-2">
+ <td class="category-table-td"> <a href="#WriteText"> WriteText </a> </td>
+ <td class="category-table-td"> writes the vector in text format </td> </tr>
+<tr class="category-table-tr-1">
+ <td class="category-table-td"> <a href="#ReadText"> ReadText </a> </td>
+ <td class="category-table-td"> reads the vector in text format </td> </tr>
+</table>
+
+
+<p> As for sparse matrices, Harwell-Boeing format can also be used :  </p>
+
+
+<h2>Basic declaration of Harwell-Boeing sparse matrices:</h2>
+
+<h4>Classes :</h4>
+<p><a>Matrix&lt;T, Prop, RowComplexSparse&gt;</a> <br/>
+<a>Matrix&lt;T, Prop, ColComplexSparse&gt;</a> <br/>
+<a>Matrix&lt;T, Prop, RowSymComplexSparse&gt;</a> <br/>
+<a>Matrix&lt;T, Prop, ColSymComplexSparse&gt;</a></p>
+
+
+<h4>Example :</h4>
+\precode
+#include "SeldonComplexMatrix.hxx"
+
+// complex sparse matrix of doubles
+Matrix<double, General, RowComplexSparse> A;
+
+// sparse symmetric matrix
+Matrix<float, Symmetric, RowSymComplexSparse> B;
+\endprecode
+
+
+<h2>Methods for Harwell-Boeing sparse matrices :</h2>
+<table class="category-table">
+<tr class="category-table-tr-2">
+<td class="category-table-td"> <a href="#csr_constructor"> Matrix constructors </a> </td> <td></td> </tr>
+<tr class="category-table-tr-1">
+ <td class="category-table-td"> <a href="#operator"> Matrix operators </a> </td> <td></td> </tr>
+<tr class="category-table-tr-2">
+ <td class="category-table-td"> <a href="#GetM"> GetM </a> </td>
+ <td class="category-table-td"> returns the number of rows in the
+ matrix </td> </tr>
+<tr class="category-table-tr-1">
+ <td class="category-table-td"> <a href="#GetN"> GetN </a> </td>
+ <td class="category-table-td"> returns the number of columns in the matrix </td> </tr>
+<tr class="category-table-tr-2">
+ <td class="category-table-td"> <a href="#GetRealDataSize"> GetRealDataSize </a> </td>
+ <td class="category-table-td"> returns the number of elements effectively stored in the real part </td> </tr>
+<tr class="category-table-tr-1">
+ <td class="category-table-td"> <a href="#GetImagDataSize"> GetImagDataSize </a> </td>
+ <td class="category-table-td"> returns the number of elements effectively stored in the imaginary part </td> </tr>
+<tr class="category-table-tr-2">
+ <td class="category-table-td"> <a href="#GetDataSize"> GetDataSize </a> </td>
+ <td class="category-table-td"> returns the number of elements effectively stored </td> </tr>
+ <tr class="category-table-tr-1">
+ <td class="category-table-td"> <a href="#GetMemorySize"> GetMemorySize </a> </td>
+ <td class="category-table-td"> returns the memory used to store the matrix </td> </tr>
+<tr class="category-table-tr-2">
+ <td class="category-table-td"> <a href="#GetRealDataSize"> GetRealNonZeros </a> </td>
+ <td class="category-table-td"> returns the number of elements effectively stored in the real part</td> </tr>
+<tr class="category-table-tr-1">
+ <td class="category-table-td"> <a href="#GetImagDataSize"> GetImagNonZeros </a> </td>
+ <td class="category-table-td"> returns the number of elements effectively stored in the imaginary part</td> </tr>
+<tr class="category-table-tr-2">
+ <td class="category-table-td"> <a href="#GetDataSize"> GetNonZeros </a> </td>
+ <td class="category-table-td"> returns the number of elements effectively stored </td> </tr>
+<tr class="category-table-tr-1">
+ <td class="category-table-td"> <a href="#csr_GetRealData"> GetRealData </a> </td>
+ <td class="category-table-td"> returns a pointer to the array containing the values of real part </td> </tr>
+<tr class="category-table-tr-2">
+ <td class="category-table-td"> <a href="#csr_GetImagData"> GetImagData </a> </td>
+ <td class="category-table-td"> returns a pointer to the array containing the values of imaginary part </td> </tr>
+<tr class="category-table-tr-1">
+ <td class="category-table-td"> <a href="#csr_GetRealInd"> GetRealInd </a> </td>
+ <td class="category-table-td"> returns a pointer to the array
+ containing column numbers of real part</td> </tr>
+<tr class="category-table-tr-2">
+ <td class="category-table-td"> <a href="#csr_GetImagInd"> GetImagInd </a> </td>
+ <td class="category-table-td"> returns a pointer to the array
+ containing column numbers of imaginary part</td> </tr>
+<tr class="category-table-tr-1">
+ <td class="category-table-td"> <a href="#csr_GetRealPtr"> GetRealPtr </a> </td>
+ <td class="category-table-td"> returns a pointer to the array
+ containing row numbers of real part</td> </tr>
+<tr class="category-table-tr-2">
+ <td class="category-table-td"> <a href="#csr_GetImagPtr"> GetImagPtr </a> </td>
+ <td class="category-table-td"> returns a pointer to the array
+ containing row numbers of imaginary part</td> </tr>
+<tr class="category-table-tr-1">
+ <td class="category-table-td"> <a href="#csr_GetRealPtr"> GetRealPtrSize </a> </td>
+ <td class="category-table-td"> returns size of array Ptr of real part </td> </tr>
+<tr class="category-table-tr-2">
+ <td class="category-table-td"> <a href="#csr_GetImagPtr"> GetImagPtrSize </a> </td>
+ <td class="category-table-td"> returns size of array Ptr of imaginary part </td> </tr>
+<tr class="category-table-tr-1">
+ <td class="category-table-td"> <a href="#csr_GetRealInd"> GetRealIndSize </a> </td>
+ <td class="category-table-td"> returns size of array Ind of real part</td> </tr>
+<tr class="category-table-tr-2">
+ <td class="category-table-td"> <a href="#csr_GetImagInd"> GetImagIndSize </a> </td>
+ <td class="category-table-td"> returns size of array Ind of imaginary part</td> </tr>
+<tr class="category-table-tr-1">
+ <td class="category-table-td"> <a href="#Clear"> Clear </a> </td>
+ <td class="category-table-td"> removes all elements of the matrix </td> </tr>
+<tr class="category-table-tr-2">
+ <td class="category-table-td"> <a href="#csr_SetData"> SetData </a> </td>
+ <td class="category-table-td"> sets the pointer to the array
+ containing the values</td> </tr>
+<tr class="category-table-tr-1">
+ <td class="category-table-td"> <a href="#csr_Nullify"> Nullify </a> </td>
+ <td class="category-table-td"> clears the matrix without releasing memory</td> </tr>
+<tr class="category-table-tr-2">
+ <td class="category-table-td"> <a href="#Reallocate"> Reallocate </a> </td>
+ <td class="category-table-td"> modifies the size of the matrix</td> </tr>
+<tr class="category-table-tr-1">
+ <td class="category-table-td"> <a href="#Resize"> Resize </a> </td>
+ <td class="category-table-td"> modifies the size of the matrix</td> </tr>
+<tr class="category-table-tr-2">
+ <td class="category-table-td"> <a href="#ValReal"> ValReal </a> </td>
+ <td class="category-table-td"> direct access to real part of A(i, j) </td> </tr>
+<tr class="category-table-tr-1">
+ <td class="category-table-td"> <a href="#ValImag"> ValImag </a> </td>
+ <td class="category-table-td"> direct access to imaginary part of A(i, j) </td> </tr>
+<tr class="category-table-tr-2">
+ <td class="category-table-td"> <a href="#GetReal"> GetReal </a> </td>
+ <td class="category-table-td"> access to real part of A(i, j) </td> </tr>
+<tr class="category-table-tr-1">
+ <td class="category-table-td"> <a href="#GetImag"> GetImag </a> </td>
+ <td class="category-table-td"> access to imaginary part of A(i, j) </td> </tr>
+<tr class="category-table-tr-2">
+ <td class="category-table-td"> <a href="#Set"> Val </a> </td>
+ <td class="category-table-td"> modification of A(i, j) </td> </tr>
+<tr class="category-table-tr-1">
+ <td class="category-table-td"> <a href="#SetIdentity"> SetIdentity </a> </td>
+ <td class="category-table-td"> initializes the sparse matrix to identity </td> </tr>
+<tr class="category-table-tr-2">
+ <td class="category-table-td"> <a href="#Fill"> Fill </a> </td>
+ <td class="category-table-td"> fills non-zero entries to a given value </td> </tr>
+<tr class="category-table-tr-1">
+ <td class="category-table-td"> <a href="#FillRand"> Fill </a> </td>
+ <td class="category-table-td"> fills non-zero entries to random values </td> </tr>
+<tr class="category-table-tr-2">
+ <td class="category-table-td"> <a href="#Print"> Print </a> </td>
+ <td class="category-table-td"> displays the matrix </td> </tr>
+<tr class="category-table-tr-1">
+ <td class="category-table-td"> <a href="#Write"> Write </a> </td>
+ <td class="category-table-td"> writes the vector in binary format </td> </tr>
+<tr class="category-table-tr-2">
+ <td class="category-table-td"> <a href="#Read"> Read </a> </td>
+ <td class="category-table-td"> reads the vector in binary format </td> </tr>
+<tr class="category-table-tr-1">
+ <td class="category-table-td"> <a href="#WriteText"> WriteText </a> </td>
+ <td class="category-table-td"> writes the vector in text format </td> </tr>
+<tr class="category-table-tr-2">
+ <td class="category-table-td"> <a href="#ReadText"> ReadText </a> </td>
+ <td class="category-table-td"> reads the vector in text format </td> </tr>
+</table>
+
+
+
+<div class="separator"><a name="constructor"></a></div>
+
+
+
+<h3>Matrix constructors for ArrayRowComplexSparse, ArrayRowSymComplexSparse</h3>
+
+
+<h4>Syntax :</h4>
+ <pre class="syntax-box">
+  Matrix();
+  Matrix(int m, int n);
+</pre>
+
+
+
+<h4> Example : </h4>
+\precode
+// default constructor -> empty matrix
+Matrix<double, General, ArrayRowComplexSparse> V;
+cout << "Number of elements "<< V.GetDataSize() << endl; // should return 0 
+// then you can use Reallocate to set the number of rows and columns
+V.Reallocate(3, 2);
+// the last command doesn't create any non-zero element
+// you can create one with AddInteraction for example
+V.AddInteraction(0, 1, complex<double>(1.5, 0.0) );
+
+// we construct symmetric matrix with 4 rows
+Matrix<double, Symmetric, ArrayRowSymComplexSparse> W(4, 4);
+\endprecode
+
+
+<h4>Related topics : </h4>
+<p><a href="#Reallocate">Reallocate</a><br/>
+<a href="#AddInteraction">AddInteraction</a></p>
+
+
+<h4>Location :</h4>
+<p> Class Matrix_ArrayComplexSparse <br/>
+Matrix_ArrayComplexSparse.hxx
+ Matrix_ArrayComplexSparse.cxx </p>
+
+
+
+<div class="separator"><a name="csr_constructor"></a></div>
+
+
+
+<h3>Matrix constructors for RowComplexSparse, RowSymComplexSparse</h3>
+
+
+<h4>Syntax :</h4>
+ <pre class="syntax-box">
+  Matrix();
+  Matrix(int m, int n);
+  Matrix(int m, int n, int real_nnz, int imag_nnz);
+  Matrix(m, n, real_values, real_ptr, real_ind, imag_values, imag_ptr, imag_ind);
+</pre>
+
+
+<h4> Example : </h4>
+\precode
+// default constructor -> empty matrix
+Matrix<double, General, RowComplexSparse> V;
+cout << "Number of elements "<< V.GetDataSize() << endl; // should return 0 
+
+// with this constructor, an empty matrix with 4 rows and columns is constructed
+Matrix<double, Symmetric, RowSymComplexSparse> W(4, 4);
+
+// Here a matrix with 3 rows, 4 columns and 10 non-zero entries
+// for the real part, and 2 non-zero entries for imaginary part
+// however non-zero entries are not initialized, you can
+// set them by modifying arrays returned by GetRealPtr(), GetRealInd(), GetRealData()
+Matrix<double, General, RowComplexSparse> A(3, 4, 10, 2);
+
+// in the last constructor you provide
+int m = 5; // number of rows
+int n = 6; // number of columns
+int real_nnz = 12; // number of non-zero entries for real part
+int imag_nnz = 4; // number of non-zero entries for imaginary part
+Vector<double> real_values(real_nnz), imag_values(imag_nnz); // values
+real_values.FillRand(); // you have to initialize values
+imag_values.FillRand(); // you have to initialize values
+Vector<int> real_col(real_nnz), imag_col(imag_nnz); // for each value column number
+// for each row, column numbers are sorted
+// first row
+real_col(0) = 0;
+real_col(1) = 2;
+real_col(2) = 4;
+// second row
+real_col(3) = 1;
+imag_col(0) = 2;
+// third row
+real_col(4) = 0;
+real_col(5) = 1;
+real_col(6) = 3;
+imag_col(1) = 0;
+imag_col(2) = 3;
+// fourth row
+real_col(7) = 4;
+real_col(8) = 5;
+// last row
+real_col(9) = 2;
+real_col(10) = 3;
+real_col(11) = 5;
+imag_col(3) = 4;
+// for each row, index of first value
+Vector<int> real_ptr(m+1), imag_ptr(m+1); 
+real_ptr(0) = 0;
+real_ptr(1) = 3;
+real_ptr(2) = 4;
+real_ptr(3) = 7;
+real_ptr(4) = 9;
+real_ptr(5) = 12;
+imag_ptr(0) = 0;
+imag_ptr(1) = 0;
+imag_ptr(2) = 1;
+imag_ptr(3) = 3;
+imag_ptr(4) = 3;
+imag_ptr(5) = 4;
+// values on the row are to be seeked between xx_ptr(i) and xx_ptr(i+1)
+
+// Now the constructor:
+Matrix<double, General, RowComplexSparse> M(m, n, real_values, real_ptr, real_col, imag_values, imag_ptr, imag_col);
+// Note that 'values', 'ptr' and 'columns' are nullified (that is, emptied):
+// the arrays to which they pointed have been transferred to M.
+\endprecode
+
+
+<h4>Related topics : </h4>
+<p><a href="#Reallocate">Reallocate</a><br/>
+<a href="#csr_SetData">SetData</a></p>
+
+
+<h4>Location :</h4>
+<p>Class Matrix_ComplexSparse<br/>
+Class Matrix_SymComplexSparse<br/>
+Matrix_ComplexSparse.hxx
+ Matrix_ComplexSparse.cxx<br/>
+Matrix_SymComplexSparse.hxx 
+Matrix_SymComplexSparse.cxx</p>
+
+
+
+<div class="separator"><a name="operator"></a></div>
+
+
+
+<h3>Matrix operators</h3>
+
+
+<h4>Syntax : </h4>
+ <pre class="syntax-box">
+  const T&amp; operator (int i, int j) const;
+  Matrix&amp; operator =(const T0&amp; alpha)
+</pre>
+
+
+<p>The operator () cannot be used to insert or modify elements of matrix. Use rather the methods <a href="#GetReal">GetReal</a> or <a href="#ValReal">ValReal</a> for the real part,
+ and corresponding methods for the imaginary part. </p>
+
+
+<h4>Example : </h4>
+\precode
+Matrix<double, General, ArrayRowComplexSparse> V(3, 3);
+// use of operator () to know the value of A(i, j);
+cout << V(2, 0) << endl;
+
+// set all elements to a given value
+V = 1;
+\endprecode
+
+
+<h4>Related topics : </h4>
+<p><a href="#AddInteraction">AddInteraction</a><br/>
+<a href="#Fill">Fill</a></p>
+
+
+<h4>Location :</h4>
+<p>Class Matrix_ArrayComplexSparse<br/>
+Class Matrix_ComplexSparse<br/>
+Class Matrix_SymComplexSparse<br/>
+Matrix_ArrayComplexSparse.hxx
+ Matrix_ArrayComplexSparse.cxx<br/>
+Matrix_ComplexSparse.hxx
+ Matrix_ComplexSparse.cxx<br/>
+Matrix_SymComplexSparse.hxx 
+Matrix_SymComplexSparse.cxx</p>
+
+
+
+<div class="separator"><a name="GetM"></a></div>
+
+
+
+<h3>GetM</h3>
+
+
+<h4>Syntax : </h4>
+ <pre class="syntax-box">
+  int GetM() const
+</pre>
+
+
+<p>This method returns the numbers of rows of the matrix. </p>
+
+
+<h4>Example : </h4>
+\precode
+Matrix<double, General, ArrayRowComplexSparse> V(4, 3);
+// GetM() should return 4
+cout << "Number of rows of V : " << V.GetM() << endl;
+\endprecode
+
+
+<h4>Related topics : </h4>
+<p><a href="#Reallocate">Reallocate</a><br/>
+<a href="#Resize">Resize</a></p>
+
+
+<h4>Location :</h4>
+<p>Class Matrix_ArrayComplexSparse<br/>
+Class Matrix_ComplexSparse<br/>
+Class Matrix_SymComplexSparse<br/>
+Matrix_ArrayComplexSparse.hxx
+ Matrix_ArrayComplexSparse.cxx<br/>
+Matrix_ComplexSparse.hxx
+ Matrix_ComplexSparse.cxx<br/>
+Matrix_SymComplexSparse.hxx 
+Matrix_SymComplexSparse.cxx</p>
+
+
+
+<div class="separator"><a name="GetN"></a></div>
+
+
+
+<h3>GetN</h3>
+
+
+<h4>Syntax : </h4>
+ <pre class="syntax-box">
+  int GetN() const
+</pre>
+
+
+<p>This method returns the numbers of columns of the matrix. </p>
+
+
+<h4>Example : </h4>
+\precode
+Matrix<double, General, ArrayRowComplexSparse> V(4, 3);
+// GetN() should return 3
+cout << "Number of columns of V : " << V.GetN() << endl;
+\endprecode
+
+
+<h4>Related topics : </h4>
+<p><a href="#Reallocate">Reallocate</a><br/>
+<a href="#Resize">Resize</a></p>
+
+
+<h4>Location :</h4>
+<p>Class Matrix_ArrayComplexSparse<br/>
+Class Matrix_ComplexSparse<br/>
+Class Matrix_SymComplexSparse<br/>
+Matrix_ArrayComplexSparse.hxx
+ Matrix_ArrayComplexSparse.cxx<br/>
+Matrix_ComplexSparse.hxx
+ Matrix_ComplexSparse.cxx<br/>
+Matrix_SymComplexSparse.hxx 
+Matrix_SymComplexSparse.cxx</p>
+
+
+
+<div class="separator"><a name="GetDataSize"></a></div>
+
+
+
+<h3>GetDataSize, GetNonZeros</h3>
+
+
+<h4>Syntax : </h4>
+ <pre class="syntax-box">
+  int GetDataSize() const
+  int GetNonZeros() const
+</pre>
+
+
+<p>This method returns the elements effectively stored in the matrix. </p>
+
+
+<h4>Example : </h4>
+\precode
+Matrix<double, General, ArrayRowComplexSparse> V(4, 3);
+// GetDataSize() should return 0
+cout << "Number of elements in V : " << V.GetDataSize() << endl;
+// then we add some values
+V.AddInteraction(0, 2, complex<double>(1.0, 0));
+V.AddInteraction(1, 0, complex<double>(0, 0.3));
+V.AddInteraction(3, 1, complex<double>(2.3, 0));
+V.AddInteraction(2, 0, complex<double>(-0.5, 0.8));
+V.AddInteraction(2, 2, complex<double>(1.2, 0));
+// GetDataSize should return 6 (four element in real part, two in imaginary part)
+cout << "Number of elements in V : " << V.GetDataSize() << endl;
+\endprecode
+
+
+<h4>Related topics : </h4>
+<p><a href="#GetRealDataSize">GetRealDataSize</a><br/>
+<a href="#GetImagDataSize">GetImagDataSize</a></p>
+
+
+<h4>Location :</h4>
+<p>Class Matrix_ArrayComplexSparse<br/>
+Class Matrix_ComplexSparse<br/>
+Class Matrix_SymComplexSparse<br/>
+Matrix_ArrayComplexSparse.hxx
+ Matrix_ArrayComplexSparse.cxx<br/>
+Matrix_ComplexSparse.hxx
+ Matrix_ComplexSparse.cxx<br/>
+Matrix_SymComplexSparse.hxx 
+Matrix_SymComplexSparse.cxx</p>
+
+
+
+<div class="separator"><a name="GetMemorySize"></a></div>
+
+
+
+<h3>GetMemorySize</h3>
+
+
+<h4>Syntax : </h4>
+ <pre class="syntax-box">
+  size_t GetMemorySize() const
+</pre>
+
+
+<p>This method returns the memory used to store the matrix in bytes. </p>
+
+
+<h4>Example : </h4>
+\precode
+Matrix<double, General, ArrayRowComplexSparse> V(4, 3);
+// GetDataSize() should return 0
+cout << "Number of elements in V : " << V.GetDataSize() << endl;
+// then we add some values
+V.AddInteraction(0, 2, complex<double>(1.0, 0));
+V.AddInteraction(1, 0, complex<double>(0, 0.3));
+V.AddInteraction(3, 1, complex<double>(2.3, 0));
+V.AddInteraction(2, 0, complex<double>(-0.5, 0.8));
+V.AddInteraction(2, 2, complex<double>(1.2, 0));
+// GetMemorySize returns the memory used to store V (in bytes)
+cout << "Memory used to store V : " << V.GetMemorySize() << endl;
+\endprecode
+
+
+<h4>Related topics : </h4>
+<p><a href="#GetRealDataSize">GetRealDataSize</a><br/>
+<a href="#GetImagDataSize">GetImagDataSize</a></p>
+
+
+<h4>Location :</h4>
+<p>Class Matrix_ArrayComplexSparse<br/>
+Class Matrix_ComplexSparse<br/>
+Class Matrix_SymComplexSparse<br/>
+Matrix_ArrayComplexSparse.hxx
+ Matrix_ArrayComplexSparse.cxx<br/>
+Matrix_ComplexSparse.hxx
+ Matrix_ComplexSparse.cxx<br/>
+Matrix_SymComplexSparse.hxx 
+Matrix_SymComplexSparse.cxx</p>
+
+
+
+<div class="separator"><a name="GetRealDataSize"></a></div>
+
+
+
+<h3>GetRealDataSize,GetRealNonZeros</h3>
+
+
+<h4>Syntax : </h4>
+ <pre class="syntax-box">
+  int GetRealDataSize() const
+  int GetRealNonZeros() const
+</pre>
+
+
+<p>This method returns the elements effectively stored in the real part of the matrix. </p>
+
+
+<h4>Example : </h4>
+\precode
+Matrix<double, General, ArrayRowComplexSparse> V(4, 3);
+// GetRealDataSize() should return 0
+cout << "Number of elements in V : " << V.GetRealDataSize() << endl;
+// then we add some values
+V.AddInteraction(0, 2, complex<double>(1.0, 0));
+V.AddInteraction(1, 0, complex<double>(0, 0.3));
+V.AddInteraction(3, 1, complex<double>(2.3, 0));
+V.AddInteraction(2, 0, complex<double>(-0.5, 0.8));
+V.AddInteraction(2, 2, complex<double>(1.2, 0));
+// GetRealDataSize should return 4
+cout << "Number of elements in V : " << V.GetRealDataSize() << endl;
+\endprecode
+
+
+<h4>Related topics : </h4>
+<p><a href="#GetDataSize">GetDataSize</a><br/>
+<a href="#GetImagDataSize">GetImagDataSize</a></p>
+
+
+<h4>Location :</h4>
+<p>Class Matrix_ArrayComplexSparse<br/>
+Class Matrix_ComplexSparse<br/>
+Class Matrix_SymComplexSparse<br/>
+Matrix_ArrayComplexSparse.hxx
+ Matrix_ArrayComplexSparse.cxx<br/>
+Matrix_ComplexSparse.hxx
+ Matrix_ComplexSparse.cxx<br/>
+Matrix_SymComplexSparse.hxx 
+Matrix_SymComplexSparse.cxx</p>
+
+
+
+<div class="separator"><a name="GetImagDataSize"></a></div>
+
+
+
+<h3>GetImagDataSize, GetImagNonZeros</h3>
+
+
+<h4>Syntax : </h4>
+ <pre class="syntax-box">
+  int GetImagDataSize() const
+  int GetImagNonZeros() const
+</pre>
+
+
+<p>This method returns the elements effectively stored in the imaginary part of the matrix. </p>
+
+
+<h4>Example : </h4>
+\precode
+Matrix<double, General, ArrayRowComplexSparse> V(4, 3);
+// GetImagDataSize() should return 0
+cout << "Number of elements in V : " << V.GetImagDataSize() << endl;
+// then we add some values
+V.AddInteraction(0, 2, complex<double>(1.0, 0));
+V.AddInteraction(1, 0, complex<double>(0, 0.3));
+V.AddInteraction(3, 1, complex<double>(2.3, 0));
+V.AddInteraction(2, 0, complex<double>(-0.5, 0.8));
+V.AddInteraction(2, 2, complex<double>(1.2, 0));
+// GetImagDataSize should return 2
+cout << "Number of elements in V : " << V.GetImagDataSize() << endl;
+\endprecode
+
+
+<h4>Related topics : </h4>
+<p><a href="#GetRealDataSize">GetRealDataSize</a><br/>
+<a href="#GetImagDataSize">GetImagDataSize</a></p>
+
+
+<h4>Location :</h4>
+<p>Class Matrix_ArrayComplexSparse<br/>
+Class Matrix_ComplexSparse<br/>
+Class Matrix_SymComplexSparse<br/>
+Matrix_ArrayComplexSparse.hxx
+ Matrix_ArrayComplexSparse.cxx<br/>
+Matrix_ComplexSparse.hxx
+ Matrix_ComplexSparse.cxx<br/>
+Matrix_SymComplexSparse.hxx 
+Matrix_SymComplexSparse.cxx</p>
+
+
+
+<div class="separator"><a name="GetRealData"></a></div>
+
+
+
+<h3>GetRealData for ArrayRowComplexSparse, ArrayRowSymComplexSparse</h3>
+
+
+<h4>Syntax : </h4>
+ <pre class="syntax-box">
+  T* GetRealData(int i) const
+  Vector<T, VectSparse>* GetRealData() const
+</pre>
+
+
+<p>This method returns a pointer to the values stored in the row i, or if no argument is provided, it returns 
+the pointer to the vector of sparse vectors (each sparse vector is a row of the real part of the matrix). </p>
+
+
+<h4>Example : </h4>
+\precode
+Matrix<double, General, ArrayRowComplexSparse> A(4, 3);
+// if you want to have a C-array with real values of second row :
+double* data = A.GetRealData(1);
+// size of this array
+int size_row = A.GetRealRowSize(1);
+// for example we sum real parts
+double sum = 0;
+for (int i = 0; i < size_row; i++)
+  sum += data[i];
+
+// if you want a pointer to all the real part
+Vector<double, VectSparse>* ptr = A.GetRealData();
+// size of this array is the number of rows
+for (int i = 0; i < A.GetM(); i++)
+    cout << "Number of elements in real part of row " << i << " : " << ptr[i].GetM() << endl;
+
+\endprecode
+
+
+<h4>Related topics : </h4>
+<p><a href="#GetImagData">GetImagData</a></p>
+
+
+<h4>Location :</h4>
+<p>Class Matrix_ArrayComplexSparse<br/>
+Matrix_ArrayComplexSparse.hxx
+ Matrix_ArrayComplexSparse.cxx<br/> </p>
+
+
+
+<div class="separator"><a name="GetImagData"></a></div>
+
+
+
+<h3>GetImagData for ArrayRowComplexSparse, ArrayRowSymComplexSparse</h3>
+
+
+<h4>Syntax : </h4>
+ <pre class="syntax-box">
+  T* GetImagData(int i) const
+  Vector<T, VectSparse>* GetImagData() const
+</pre>
+
+
+<p>This method returns a pointer to the values stored in the row i, or if no argument is provided, it returns 
+the pointer to the vector of sparse vectors (each sparse vector is a row of the imaginary part of the matrix). </p>
+
+
+<h4>Example : </h4>
+\precode
+Matrix<double, General, ArrayRowComplexSparse> A(4, 3);
+// if you want to have a C-array with imaginary values of third row :
+double* data = A.GetImagData(2);
+// size of this array
+int size_row = A.GetImagRowSize(2);
+// for example we sum imaginary parts
+double sum = 0;
+for (int i = 0; i < size_row; i++)
+  sum += data[i];
+
+// if you want a pointer to all the imaginary part
+Vector<double, VectSparse>* ptr = A.GetImagData();
+// size of this array is the number of rows
+for (int i = 0; i < A.GetM(); i++)
+    cout << "Number of elements in imaginary part of row " << i << " : " << ptr[i].GetM() << endl;
+
+\endprecode
+
+
+<h4>Related topics : </h4>
+<p><a href="#GetRealData">GetRealData</a></p>
+
+
+<h4>Location :</h4>
+<p>Class Matrix_ArrayComplexSparse<br/>
+Matrix_ArrayComplexSparse.hxx
+ Matrix_ArrayComplexSparse.cxx<br/> </p>
+
+
+
+<div class="separator"><a name="csr_GetRealData"></a></div>
+
+
+
+<h3>GetRealData for RowComplexSparse, RowSymComplexSparse</h3>
+
+
+<h4>Syntax : </h4>
+ <pre class="syntax-box">
+  T* GetRealData() const
+</pre>
+
+
+<p>This method returns a pointer to the values stored in the matrix (only real part). </p>
+
+
+<h4>Example : </h4>
+\precode
+Matrix<double, General, ArrayRowComplexSparse> A(4, 3);
+// if you want to have a C-array with real values of the matrix :
+double* data = A.GetRealData();
+// size of this array
+int size_data = A.GetRealDataSize(1);
+// for example we sum all the non-zero entries
+double sum = 0;
+for (int i = 0; i < size_data; i++)
+  sum += data[i];
+\endprecode
+
+
+<h4>Related topics : </h4>
+<p><a href="#csr_GetImagData">GetImagData</a></p>
+
+
+<h4>Location :</h4>
+<p>Class Matrix_ComplexSparse<br/>
+Class Matrix_SymComplexSparse<br/>
+Matrix_ComplexSparse.hxx
+ Matrix_ComplexSparse.cxx<br/> 
+Matrix_SymComplexSparse.hxx
+ Matrix_SymComplexSparse.cxx<br/> </p>
+
+
+
+<div class="separator"><a name="csr_GetImagData"></a></div>
+
+
+
+<h3>GetImagData for RowComplexSparse, RowSymComplexSparse</h3>
+
+
+<h4>Syntax : </h4>
+ <pre class="syntax-box">
+  T* GetImagData() const
+</pre>
+
+
+<p>This method returns a pointer to the values stored in the matrix (only imaginary part). </p>
+
+
+<h4>Example : </h4>
+\precode
+Matrix<double, General, ArrayRowComplexSparse> A(4, 3);
+// if you want to have a C-array with imaginary values of the matrix :
+double* data = A.GetImagData();
+// size of this array
+int size_data = A.GetImagDataSize(1);
+// for example we sum all the non-zero entries
+double sum = 0;
+for (int i = 0; i < size_data; i++)
+  sum += data[i];
+\endprecode
+
+
+<h4>Related topics : </h4>
+<p><a href="#csr_GetRealData">GetRealData</a></p>
+
+
+<h4>Location :</h4>
+<p>Class Matrix_ComplexSparse<br/>
+Class Matrix_SymComplexSparse<br/>
+Matrix_ComplexSparse.hxx
+ Matrix_ComplexSparse.cxx<br/> 
+Matrix_SymComplexSparse.hxx
+ Matrix_SymComplexSparse.cxx<br/> </p>
+
+
+
+<div class="separator"><a name="csr_GetRealInd"></a></div>
+
+
+
+<h3>GetRealInd for RowComplexSparse, RowSymComplexSparse</h3>
+
+
+<h4>Syntax : </h4>
+ <pre class="syntax-box">
+  int* GetRealInd() const
+</pre>
+
+
+<p>This method returns a pointer to the column numbers of the matrix (only real part). </p>
+
+
+<h4>Example : </h4>
+\precode
+Matrix<double, General, ArrayRowComplexSparse> A(4, 3);
+// if you want to have a C-array with columns numbers of the real part of matrix :
+int* ind = A.GetRealInd();
+// we retrieve values and offsets as well
+double* data = A.GetRealInd();
+int* ptr = A.GetRealPtr();
+// for example we sum all the non-zero entries not on the diagonal
+double sum = 0;
+for (int i = 0; i < A.GetM(); i++)
+  for (int j = ptr[i]; j < ptr[i+1]; j++)
+    if (ind[j] != i)
+      sum += data[i];
+\endprecode
+
+
+<h4>Related topics : </h4>
+<p><a href="#csr_GetImagInd">GetImagInd</a></p>
+
+
+<h4>Location :</h4>
+<p>Class Matrix_ComplexSparse<br/>
+Class Matrix_SymComplexSparse<br/>
+Matrix_ComplexSparse.hxx
+ Matrix_ComplexSparse.cxx<br/> 
+Matrix_SymComplexSparse.hxx
+ Matrix_SymComplexSparse.cxx<br/> </p>
+
+
+
+<div class="separator"><a name="csr_GetImagInd"></a></div>
+
+
+
+<h3>GetImagInd for RowComplexSparse, RowSymComplexSparse</h3>
+
+
+<h4>Syntax : </h4>
+ <pre class="syntax-box">
+  int* GetImagInd() const
+</pre>
+
+
+<p>This method returns a pointer to the column numbers of the matrix (only imaginary part). </p>
+
+
+<h4>Example : </h4>
+\precode
+Matrix<double, General, ArrayRowComplexSparse> A(4, 3);
+// if you want to have a C-array with columns numbers of the imaginary part of matrix :
+int* ind = A.GetImagInd();
+// we retrieve values and offsets as well
+double* data = A.GetImagInd();
+int* ptr = A.GetImagPtr();
+// for example we sum all the non-zero entries not on the diagonal
+double sum = 0;
+for (int i = 0; i < A.GetM(); i++)
+  for (int j = ptr[i]; j < ptr[i+1]; j++)
+    if (ind[j] != i)
+      sum += data[i];
+\endprecode
+
+
+<h4>Related topics : </h4>
+<p><a href="#csr_GetRealInd">GetRealInd</a></p>
+
+
+<h4>Location :</h4>
+<p>Class Matrix_ComplexSparse<br/>
+Class Matrix_SymComplexSparse<br/>
+Matrix_ComplexSparse.hxx
+ Matrix_ComplexSparse.cxx<br/> 
+Matrix_SymComplexSparse.hxx
+ Matrix_SymComplexSparse.cxx<br/> </p>
+
+
+
+<div class="separator"><a name="csr_GetRealPtr"></a></div>
+
+
+
+<h3>GetRealPtr for RowComplexSparse, RowSymComplexSparse</h3>
+
+
+<h4>Syntax : </h4>
+ <pre class="syntax-box">
+  int* GetRealPtr() const
+</pre>
+
+
+<p>This method returns a pointer to the array containing starting indices of rows (only real part). </p>
+
+
+<h4>Example : </h4>
+\precode
+Matrix<double, General, ArrayRowComplexSparse> A(4, 3);
+// if you want to have a C-array with columns numbers of the real part of matrix :
+int* ind = A.GetRealInd();
+// we retrieve values and offsets as well
+double* data = A.GetRealInd();
+int* ptr = A.GetRealPtr();
+// for example we sum all the non-zero entries not on the diagonal
+double sum = 0;
+for (int i = 0; i < A.GetM(); i++)
+  for (int j = ptr[i]; j < ptr[i+1]; j++)
+    if (ind[j] != i)
+      sum += data[i];
+\endprecode
+
+
+<h4>Related topics : </h4>
+<p><a href="#csr_GetImagPtr">GetImagPtr</a></p>
+
+
+<h4>Location :</h4>
+<p>Class Matrix_ComplexSparse<br/>
+Class Matrix_SymComplexSparse<br/>
+Matrix_ComplexSparse.hxx
+ Matrix_ComplexSparse.cxx<br/> 
+Matrix_SymComplexSparse.hxx
+ Matrix_SymComplexSparse.cxx<br/> </p>
+
+
+
+<div class="separator"><a name="csr_GetImagPtr"></a></div>
+
+
+
+<h3>GetImagPtr for RowComplexSparse, RowSymComplexSparse</h3>
+
+
+<h4>Syntax : </h4>
+ <pre class="syntax-box">
+  int* GetImagPtr() const
+</pre>
+
+
+<p>This method returns a pointer to the array containing starting indices of rows (only imaginary part). </p>
+
+
+<h4>Example : </h4>
+\precode
+Matrix<double, General, ArrayRowComplexSparse> A(4, 3);
+// if you want to have a C-array with columns numbers of the imaginary part of matrix :
+int* ind = A.GetImagInd();
+// we retrieve values and offsets as well
+double* data = A.GetImagInd();
+int* ptr = A.GetImagPtr();
+// for example we sum all the non-zero entries not on the diagonal
+double sum = 0;
+for (int i = 0; i < A.GetM(); i++)
+  for (int j = ptr[i]; j < ptr[i+1]; j++)
+    if (ind[j] != i)
+      sum += data[i];
+\endprecode
+
+
+<h4>Related topics : </h4>
+<p><a href="#csr_GetRealPtr">GetRealPtr</a></p>
+
+
+<h4>Location :</h4>
+<p>Class Matrix_ComplexSparse<br/>
+Class Matrix_SymComplexSparse<br/>
+Matrix_ComplexSparse.hxx
+ Matrix_ComplexSparse.cxx<br/> 
+Matrix_SymComplexSparse.hxx
+ Matrix_SymComplexSparse.cxx<br/> </p>
+
+
+
+<div class="separator"><a name="csr_SetData"></a></div>
+
+
+
+<h3>SetData for RowComplexSparse, RowSymComplexSparse</h3>
+
+
+<h4>Syntax : </h4>
+ <pre class="syntax-box">
+  void SetData(int m, int n, int real_nz, T* real_data, int* real_ptr, int* real_ind, T* imag_data, int* imag_ptr, int* imag_ind);
+  void SetData(int m, int n, Vector<T> real_data, Vector<int> real_ptr, Vector<int> real_ind,
+                             Vector<T> imag_data, Vector<int> imag_ptr, Vector<int> imag_ind)
+</pre>
+
+
+<p>This method initializes directly the matrix by providing the arrays Ptr, Ind and Data. </p>
+
+
+<h4>Example : </h4>
+\precode
+int m = 5; // number of rows
+int n = 6; // number of columns
+int real_nnz = 12; // number of non-zero entries for real part
+int imag_nnz = 4; // number of non-zero entries for imaginary part
+Vector<double> real_values(real_nnz), imag_values(imag_nnz); // values
+real_values.FillRand(); // you have to initialize values
+imag_values.FillRand(); // you have to initialize values
+Vector<int> real_col(real_nnz), imag_col(imag_nnz); // for each value column number
+// for each row, column numbers are sorted
+// first row
+real_col(0) = 0;
+real_col(1) = 2;
+real_col(2) = 4;
+// second row
+real_col(3) = 1;
+imag_col(0) = 2;
+// third row
+real_col(4) = 0;
+real_col(5) = 1;
+real_col(6) = 3;
+imag_col(1) = 0;
+imag_col(2) = 3;
+// fourth row
+real_col(7) = 4;
+real_col(8) = 5;
+// last row
+real_col(9) = 2;
+real_col(10) = 3;
+real_col(11) = 5;
+imag_col(3) = 4;
+// for each row, index of first value
+Vector<int> real_ptr(m+1), imag_ptr(m+1); 
+real_ptr(0) = 0;
+real_ptr(1) = 3;
+real_ptr(2) = 4;
+real_ptr(3) = 7;
+real_ptr(4) = 9;
+real_ptr(5) = 12;
+imag_ptr(0) = 0;
+imag_ptr(1) = 0;
+imag_ptr(2) = 1;
+imag_ptr(3) = 3;
+imag_ptr(4) = 3;
+imag_ptr(5) = 4;
+// values on the row are to be seeked between xx_ptr(i) and xx_ptr(i+1)
+
+Matrix<double, General, RowComplexSparse> A;
+
+// Initialisation of A
+A.SetData(m, n, real_values, real_ptr, real_col, imag_values, imag_ptr, imag_col);
+// Note that 'values', 'ptr' and 'columns' are nullified (that is, emptied):
+// the arrays to which they pointed have been transferred to M.
+
+\endprecode
+
+
+<h4>Related topics : </h4>
+<p><a href="#csr_constructor">constructor</a></p>
+
+
+<h4>Location :</h4>
+<p>Class Matrix_ComplexSparse<br/>
+Class Matrix_SymComplexSparse<br/>
+Matrix_ComplexSparse.hxx
+ Matrix_ComplexSparse.cxx<br/> 
+Matrix_SymComplexSparse.hxx
+ Matrix_SymComplexSparse.cxx<br/> </p>
+
+
+
+<div class="separator"><a name="csr_Nullify"></a></div>
+
+
+
+<h3>Nullify for RowComplexSparse, RowSymComplexSparse</h3>
+
+
+<h4>Syntax : </h4>
+ <pre class="syntax-box">
+  void Nullify()
+</pre>
+
+
+<p>This method nullifies pointer without releasing the memory. On output, the matrix is 0x0 with 0 non-zero entries. </p>
+
+
+<h4>Example : </h4>
+\precode
+// reading A from a file
+Matrix<double, General, RowComplexSparse> A;
+A.ReadText("mat.dat");
+
+// then retrieving C-pointers
+int  m = A.GetM();
+int nnz = A.GetDataSize();
+int* ptr = A.GetPtr();
+int* ind = A.GetInd();
+double* data = A.GetData();
+
+// if you wish to handle deallocation of these pointers by your-self :
+A.Nullify();
+\endprecode
+
+
+<h4>Related topics : </h4>
+<p><a href="#csr_constructor">constructor</a></p>
+
+
+<h4>Location :</h4>
+<p>Class Matrix_ComplexSparse<br/>
+Class Matrix_SymComplexSparse<br/>
+Matrix_ComplexSparse.hxx
+ Matrix_ComplexSparse.cxx<br/> 
+Matrix_SymComplexSparse.hxx
+ Matrix_SymComplexSparse.cxx<br/> </p>
+
+
+
+<div class="separator"><a name="GetRealInd"></a></div>
+
+
+
+<h3>GetRealInd for ArrayRowComplexSparse, ArrayRowSymComplexSparse</h3>
+
+
+<h4>Syntax : </h4>
+ <pre class="syntax-box">
+  int* GetRealInd(int i) const
+</pre>
+
+
+<p>This method returns a pointer to the column numbers of the real part of sparse row i. </p>
+
+
+<h4>Example : </h4>
+\precode
+Matrix<double, General, ArrayRowComplexSparse> A(4, 3);
+// if you want to have a C-array with real values of second row :
+double* data = A.GetRealData(1);
+// and wish the column indexes as well
+int* col = A.GetRealInd(1);
+// size of this array
+int size_row = A.GetRealRowSize(1);
+// for example we sum real parts except diagonal
+double sum = 0;
+for (int i = 0; i < size_row; i++)
+  if (col[i] != 1)
+    sum += data[i];
+\endprecode
+
+
+<h4>Related topics : </h4>
+<p><a href="#GetImagInd">GetImagInd</a></p>
+
+
+<h4>Location :</h4>
+<p>Class Matrix_ArrayComplexSparse<br/>
+Matrix_ArrayComplexSparse.hxx
+ Matrix_ArrayComplexSparse.cxx<br/> </p>
+
+
+
+<div class="separator"><a name="GetImagInd"></a></div>
+
+
+
+<h3>GetImagInd for ArrayRowComplexSparse, ArrayRowSymComplexSparse</h3>
+
+
+<h4>Syntax : </h4>
+ <pre class="syntax-box">
+  int* GetImagInd(int i) const
+</pre>
+
+
+<p>This method returns a pointer to the column numbers of the imaginary part of sparse row i. </p>
+
+
+<h4>Example : </h4>
+\precode
+Matrix<double, General, ArrayRowComplexSparse> A(4, 3);
+// if you want to have a C-array with imaginary values of third row :
+double* data = A.GetImagData(2);
+// and column indexes :
+int* col = A.GetImagInd(2);
+// size of this array
+int size_row = A.GetImagRowSize(2);
+// for example we sum imaginary parts except on diagonal
+double sum = 0;
+for (int i = 0; i < size_row; i++)
+  if (col[i] != 2)
+    sum += data[i];
+
+\endprecode
+
+
+<h4>Related topics : </h4>
+<p><a href="#GetRealInd">GetRealInd</a></p>
+
+
+<h4>Location :</h4>
+<p>Class Matrix_ArrayComplexSparse<br/>
+Matrix_ArrayComplexSparse.hxx
+ Matrix_ArrayComplexSparse.cxx<br/> </p>
+
+
+
+<div class="separator"><a name="ValReal"></a></div>
+
+
+
+<h3>ValReal</h3>
+
+
+
+<h4>Syntax : </h4>
+ <pre class="syntax-box">
+  T&amp; ValReal(int i, int j)
+</pre>
+
+
+<p>This method returns a reference to real part of A(i, j) so that you can modify directly the matrix. If the position (i, j) does not correspond
+ to a non-zero entry, an exception is raised (in debug mode). This method does not create new non-zero entries, use rather <a href="#GetReal">GetReal</a> to this aim. </p>
+
+
+<h4>Example : </h4>
+\precode
+Matrix<double, General, ArrayRowComplexSparse> A(10, 4);
+// in a first step, you fill the matrix
+A.GetReal(0, 3) = 2.0;
+A.GetImag(0, 2) = 1.5;
+A.GetReal(1, 1) = -2.3;
+A.GetImag(1, 1) = 0.2;
+// then you can modify the real part with ValReal
+A.ValReal(0, 3) = 1.0;
+// next line should raise an exception
+A.ValReal(2, 3) = 0.2;
+
+\endprecode
+
+
+<h4>Related topics : </h4>
+<p><a href="#GetReal">GetReal</a><br/>
+<a href="#GetImag">GetImag</a><br/>
+<a href="#ValImag">ValImag</a></p>
+
+
+<h4>Location :</h4>
+<p>Class Matrix_ArrayComplexSparse<br/>
+Class Matrix_ComplexSparse<br/>
+Class Matrix_SymComplexSparse<br/>
+Matrix_ArrayComplexSparse.hxx
+ Matrix_ArrayComplexSparse.cxx<br/>
+Matrix_ComplexSparse.hxx
+ Matrix_ComplexSparse.cxx<br/>
+Matrix_SymComplexSparse.hxx 
+Matrix_SymComplexSparse.cxx</p>
+
+
+
+<div class="separator"><a name="ValImag"></a></div>
+
+
+
+<h3>ValImag</h3>
+
+
+
+<h4>Syntax : </h4>
+ <pre class="syntax-box">
+  T&amp; ValImag(int i, int j)
+</pre>
+
+
+<p>This method returns a reference to imaginary part of A(i, j) so that you can modify directly the matrix. If the position (i, j) does not correspond
+ to a non-zero entry, an exception is raised (in debug mode). This method does not create new non-zero entries, use rather <a href="#GetImag">GetImag</a> to this aim. </p>
+
+
+<h4>Example : </h4>
+\precode
+Matrix<double, General, ArrayRowComplexSparse> A(10, 4);
+// in a first step, you fill the matrix
+A.GetReal(0, 3) = 2.0;
+A.GetImag(0, 2) = 1.5;
+A.GetReal(1, 1) = -2.3;
+A.GetImag(1, 1) = 0.2;
+// then you can modify the imaginary part with ValImag
+A.ValImag(0, 2) = 1.0;
+// next line should raise an exception
+A.ValImag(2, 3) = 0.2;
+
+\endprecode
+
+
+<h4>Related topics : </h4>
+<p><a href="#ValReal">ValReal</a><br/>
+<a href="#GetReal">GetReal</a><br/>
+<a href="#GetImag">GetImag</a></p>
+
+
+<h4>Location :</h4>
+<p>Class Matrix_ArrayComplexSparse<br/>
+Class Matrix_ComplexSparse<br/>
+Class Matrix_SymComplexSparse<br/>
+Matrix_ArrayComplexSparse.hxx
+ Matrix_ArrayComplexSparse.cxx<br/>
+Matrix_ComplexSparse.hxx
+ Matrix_ComplexSparse.cxx<br/>
+Matrix_SymComplexSparse.hxx 
+Matrix_SymComplexSparse.cxx</p>
+
+
+<div class="separator"><a name="GetReal"></a></div>
+
+
+
+<h3>GetReal</h3>
+
+
+
+<h4>Syntax : </h4>
+ <pre class="syntax-box">
+  T&amp; GetReal(int i, int j)
+</pre>
+
+
+<p>This method returns a reference to real part of A(i, j) so that you can modify directly the matrix. If the position (i, j) does not correspond
+ to a non-zero entry, a new non-zero entry is created. </p>
+
+
+<h4>Example : </h4>
+\precode
+Matrix<double, General, ArrayRowComplexSparse> A(10, 4);
+// you can fill the matrix with GetReal/GetImag
+A.GetReal(0, 3) = 2.0;
+A.GetImag(0, 2) = 1.5;
+A.GetReal(1, 1) = -2.3;
+A.GetImag(1, 1) = 0.2;
+
+\endprecode
+
+
+<h4>Related topics : </h4>
+<p><a href="#GetImag">GetImag</a></p>
+
+
+<h4>Location :</h4>
+<p>Class Matrix_ArrayComplexSparse<br/>
+Class Matrix_ComplexSparse<br/>
+Class Matrix_SymComplexSparse<br/>
+Matrix_ArrayComplexSparse.hxx
+ Matrix_ArrayComplexSparse.cxx<br/>
+Matrix_ComplexSparse.hxx
+ Matrix_ComplexSparse.cxx<br/>
+Matrix_SymComplexSparse.hxx 
+Matrix_SymComplexSparse.cxx</p>
+
+
+
+<div class="separator"><a name="GetImag"></a></div>
+
+
+
+<h3>GetImag</h3>
+
+
+
+<h4>Syntax : </h4>
+ <pre class="syntax-box">
+  T&amp; GetImag(int i, int j)
+</pre>
+
+
+<p>This method returns a reference to imaginary part of A(i, j) so that you can modify directly the matrix. If the position (i, j) does not correspond
+ to a non-zero entry, a new non-zero entry is created. </p>
+
+
+<h4>Example : </h4>
+\precode
+Matrix<double, General, ArrayRowComplexSparse> A(10, 4);
+// you can fill the matrix with GetReal/GetImag
+A.GetReal(0, 3) = 2.0;
+A.GetImag(0, 2) = 1.5;
+A.GetReal(1, 1) = -2.3;
+A.GetImag(1, 1) = 0.2;
+A.ValImag(2, 3) = 0.2;
+
+\endprecode
+
+
+<h4>Related topics : </h4>
+<p><a href="#GetReal">GetReal</a></p>
+
+
+<h4>Location :</h4>
+<p>Class Matrix_ArrayComplexSparse<br/>
+Class Matrix_ComplexSparse<br/>
+Class Matrix_SymComplexSparse<br/>
+Matrix_ArrayComplexSparse.hxx
+ Matrix_ArrayComplexSparse.cxx<br/>
+Matrix_ComplexSparse.hxx
+ Matrix_ComplexSparse.cxx<br/>
+Matrix_SymComplexSparse.hxx 
+Matrix_SymComplexSparse.cxx</p>
+
+
+
+<div class="separator"><a name="Set"></a></div>
+
+
+
+<h3>Set</h3>
+
+
+
+<h4>Syntax : </h4>
+ <pre class="syntax-box">
+  void Set(int i, int j, const complex<T>& val);
+</pre>
+
+
+<p>This method sets real and imaginary part A(i, j) so that you can modify directly the matrix. If the position (i, j) does not correspond
+ to a non-zero entry, a new non-zero entry is created. </p>
+ 
+
+<h4>Example : </h4>
+\precode
+Matrix<double, General, ArrayRowComplexSparse> A(10, 4);
+// you can fill the matrix with Set
+A.Set(0, 3, complex<double>(2.0, -0.5));
+A.Set(0, 2, complex<double>(1.5, 0.2));
+A.Set(1, 1, complex<double>(-2.3, 0));
+A.Set(2, 3, complex<double>(0, 0.2));
+
+\endprecode
+
+
+<h4>Related topics : </h4>
+<p><a href="#GetReal">GetReal</a><br/>
+<a href="#GetImag">GetImag</a></p>
+
+
+<h4>Location :</h4>
+<p>Class Matrix_ArrayComplexSparse<br/>
+Class Matrix_ComplexSparse<br/>
+Class Matrix_SymComplexSparse<br/>
+Matrix_ArrayComplexSparse.hxx
+ Matrix_ArrayComplexSparse.cxx<br/>
+Matrix_ComplexSparse.hxx
+ Matrix_ComplexSparse.cxx<br/>
+Matrix_SymComplexSparse.hxx 
+Matrix_SymComplexSparse.cxx</p>
+
+
+
+<div class="separator"><a name="NullifyReal"></a></div>
+
+
+
+<h3>NullifyReal</h3>
+
+
+<h4>Syntax : </h4>
+ <pre class="syntax-box">
+  void NullifyReal(int i)
+  void NullifyReal()
+</pre>
+
+
+<p>This method empties a single row of the matrix or the entire matrix (only real part) without releasing the memory. It should be used carefully
+ and usually in conjunction with SetRealData. </p>
+
+
+<h4>Example : </h4>
+\precode
+Matrix<double, General, ArrayRowComplexSparse> A(4, 3);
+// if you want to have a C-array with real values of second row :
+double* data = A.GetRealData(1);
+// and column indexes
+int* col = A.GetRealInd(1);
+// size of this array
+int size_row = A.GetRealRowSize(1);
+// you can initialize a sparse vector with those pointers
+Vector<double, VectSparse> single_row;
+single_row.SetData(size_row, data, col);
+// then to avoid multiple deallocations, NullifyReal is useful :
+A.NullifyReal(1);
+
+// if you want a pointer to all the real part
+Vector<double, VectSparse>* ptr = A.GetRealData();
+int m = A.GetM();
+// and nullify all the real part
+A.NullifyReal();
+\endprecode
+
+
+<h4>Related topics : </h4>
+<p><a href="#NullifyImag">NullifyImag</a></p>
+
+
+<h4>Location :</h4>
+<p>Class Matrix_ArrayComplexSparse<br/>
+Matrix_ArrayComplexSparse.hxx
+ Matrix_ArrayComplexSparse.cxx<br/> </p>
+
+
+
+<div class="separator"><a name="NullifyImag"></a></div>
+
+
+
+<h3>NullifyImag</h3>
+
+
+<h4>Syntax : </h4>
+ <pre class="syntax-box">
+  void NullifyImag(int i)
+  void NullifyImag()
+</pre>
+
+
+<p>This method empties a single row of the matrix or the entire matrix (only imaginary part) without releasing the memory. It should be used carefully
+ and usually in conjunction with SetImagData. </p>
+
+
+<h4>Example : </h4>
+\precode
+Matrix<double, General, ArrayRowComplexSparse> A(4, 3);
+// if you want to have a C-array with imaginary values of second row :
+double* data = A.GetImagData(1);
+// and column indexes
+int* col = A.GetImagInd(1);
+// size of this array
+int size_row = A.GetImagRowSize(1);
+// you can initialize a sparse vector with those pointers
+Vector<double, VectSparse> single_row;
+single_row.SetData(size_row, data, col);
+// then to avoid multiple deallocations, NullifyImag is useful :
+A.NullifyImag(1);
+
+// if you want a pointer to all the imaginary part
+Vector<double, VectSparse>* ptr = A.GetImagData();
+int m = A.GetM();
+// and nullify all the imaginary part
+A.NullifyImag();
+\endprecode
+
+
+<h4>Related topics : </h4>
+<p><a href="#NullifyReal">NullifyReal</a></p>
+
+
+<h4>Location :</h4>
+<p>Class Matrix_ArrayComplexSparse<br/>
+Matrix_ArrayComplexSparse.hxx
+ Matrix_ArrayComplexSparse.cxx<br/> </p>
+
+
+
+<div class="separator"><a name="SetRealData"></a></div>
+
+
+
+<h3>SetRealData</h3>
+
+
+<h4>Syntax : </h4>
+ <pre class="syntax-box">
+  void SetRealData(int m, int n, Vector<T, VectSparse>* real_part)
+  void SetRealData(int i, int size_row, T* val, int* col);
+</pre>
+
+
+<p>With this method, you can set directly the pointers containing the real part of a single row, or the real part of the entire matrix.
+ This low-level method should be used cautiously. </p>
+
+
+<h4>Example : </h4>
+\precode
+Matrix<double, General, ArrayRowComplexSparse> A(4, 6);
+// you initialize values and column numbers of a row
+int size_row = 3;
+Vector<double> values(size_row); Vector<int> cols(size_row);
+values(0) = 1.3; cols(0) = 0;
+values(1) = -3.5; cols(1) = 2;
+values(2) = 5.2; cols(2) = 5;
+// then you initialize a row with these datas
+int irow = 2;
+A.SetRealData(irow, size_row, values.GetData(), cols.GetData());
+// nullify values and cols to avoid multiple deallocations
+values.Nullify(); cols.Nullify();
+
+// you can also construct all the rows of real part
+int m = 4, n = 6;
+Vector<Vector<double, VectSparse> > all_rows(m);
+all_rows(0).Get(1) = 2.3;
+all_rows(0).Get(3) = 1.8;
+all_rows(1).Get(1) = -0.3;
+all_rows(2).Get(5) = 9.1;
+all_rows(2).Get(2) = 0.2;
+all_rows(3).Get(4) = 0.9;
+// and feed the real part of the matrix with all_rows
+A.SetRealData(m, n, all_rows.GetData());
+// nullify all_rows to avoid multiple deallocations
+all_rows.Nullify();
+\endprecode
+
+
+<h4>Related topics : </h4>
+<p><a href="#NullifyReal">NullifyReal</a><br/>
+<a href="#NullifyImag">NullifyImag</a><br/>
+<a href="#SetImagData">SetImagData</a></p>
+
+
+<h4>Location :</h4>
+<p>Class Matrix_ArrayComplexSparse<br/>
+Matrix_ArrayComplexSparse.hxx
+ Matrix_ArrayComplexSparse.cxx<br/> </p>
+
+
+
+<div class="separator"><a name="SetImagData"></a></div>
+
+
+
+<h3>SetImagData</h3>
+
+
+<h4>Syntax : </h4>
+ <pre class="syntax-box">
+  void SetImagData(int m, int n, Vector<T, VectSparse>* real_part)
+  void SetImagData(int i, int size_row, T* val, int* col);
+</pre>
+
+
+<p>With this method, you can set directly the pointers containing the imaginary part of a single row, or the real part of the entire matrix.
+ This low-level method should be used cautiously. </p>
+
+
+<h4>Example : </h4>
+\precode
+Matrix<double, General, ArrayRowComplexSparse> A(4, 6);
+// you initialize values and column numbers of a row
+int size_row = 3;
+Vector<double> values(size_row); Vector<int> cols(size_row);
+values(0) = 1.3; cols(0) = 0;
+values(1) = -3.5; cols(1) = 2;
+values(2) = 5.2; cols(2) = 5;
+// then you initialize a row with these datas
+int irow = 2;
+A.SetImagData(irow, size_row, values.GetData(), cols.GetData());
+// nullify values and cols to avoid multiple deallocations
+values.Nullify(); cols.Nullify();
+
+// you can also construct all the rows of imaginary part
+int m = 4, n = 6;
+Vector<Vector<double, VectSparse> > all_rows(m);
+all_rows(0).Get(1) = 2.3;
+all_rows(0).Get(3) = 1.8;
+all_rows(1).Get(1) = -0.3;
+all_rows(2).Get(5) = 9.1;
+all_rows(2).Get(2) = 0.2;
+all_rows(3).Get(4) = 0.9;
+// and feed the imaginary part of the matrix with all_rows
+A.SetImagData(m, n, all_rows.GetData());
+// nullify all_rows to avoid multiple deallocations
+all_rows.Nullify();
+\endprecode
+
+
+<h4>Related topics : </h4>
+<p><a href="#NullifyReal">NullifyReal</a><br/>
+<a href="#NullifyImag">NullifyImag</a><br/>
+<a href="#SetRealData">SetRealData</a></p>
+
+
+<h4>Location :</h4>
+<p>Class Matrix_ArrayComplexSparse<br/>
+Matrix_ArrayComplexSparse.hxx
+ Matrix_ArrayComplexSparse.cxx<br/> </p>
+
+
+
+<div class="separator"><a name="Clear"></a></div>
+
+
+
+<h3>Clear</h3>
+
+
+<h4>Syntax : </h4>
+ <pre class="syntax-box">
+  void Clear()
+</pre>
+
+
+<p>This method clears the matrix. On output, the matrix is 0x0 with 0 non-zero entries. </p>
+
+
+<h4>Example : </h4>
+\precode
+Matrix<double, General, ArrayRowComplexSparse> V(4, 3);
+// GetM() should return 4
+cout << "Number of rows of V : " << V.GetM() << endl;
+
+// the matrix is cleared
+V.Clear();
+// GetM() should return 0
+cout << "Number of rows of V : " << V.GetM() << endl;
+\endprecode
+
+
+<h4>Related topics : </h4>
+<p><a href="#Reallocate">Reallocate</a><br/>
+<a href="#Resize">Resize</a></p>
+
+
+<h4>Location :</h4>
+<p>Class Matrix_ArrayComplexSparse<br/>
+Class Matrix_ComplexSparse<br/>
+Class Matrix_SymComplexSparse<br/>
+Matrix_ArrayComplexSparse.hxx
+ Matrix_ArrayComplexSparse.cxx<br/>
+Matrix_ComplexSparse.hxx
+ Matrix_ComplexSparse.cxx<br/>
+Matrix_SymComplexSparse.hxx 
+Matrix_SymComplexSparse.cxx</p>
+
+
+
+<div class="separator"><a name="Reallocate"></a></div>
+
+
+
+<h3>Reallocate</h3>
+
+
+<h4>Syntax : </h4>
+ <pre class="syntax-box">
+  void Reallocate(int m, int n)
+</pre>
+
+
+<p>This method reallocates the matrix, previous non-zero entries are removed (you don't need to call Clear). </p>
+
+
+<h4>Example : </h4>
+\precode
+Matrix<double, General, ArrayRowComplexSparse> V(4, 3);
+// GetM() should return 4
+cout << "Number of rows of V : " << V.GetM() << endl;
+
+// the matrix is reallocated
+// new matrix will contain 0 non-zero entries
+V.Reallocate(6, 10);
+cout << "Number of rows of V : " << V.GetM() << endl;
+\endprecode
+
+
+<h4>Related topics : </h4>
+<p><a href="#Clear">Clear</a><br/>
+<a href="#Resize">Resize</a></p>
+
+
+<h4>Location :</h4>
+<p>Class Matrix_ArrayComplexSparse<br/>
+Class Matrix_ComplexSparse<br/>
+Class Matrix_SymComplexSparse<br/>
+Matrix_ArrayComplexSparse.hxx
+ Matrix_ArrayComplexSparse.cxx<br/>
+Matrix_ComplexSparse.hxx
+ Matrix_ComplexSparse.cxx<br/>
+Matrix_SymComplexSparse.hxx 
+Matrix_SymComplexSparse.cxx</p>
+
+
+
+<div class="separator"><a name="Resize"></a></div>
+
+
+
+<h3>Resize</h3>
+
+
+<h4>Syntax : </h4>
+ <pre class="syntax-box">
+  void Resize(int m, int n)
+</pre>
+
+
+<p>This method resizes the matrix, previous non-zero entries are kept if they are always in the scope of the matrix (if you reduce
+ the numbers of rows or columns of the matrix, some non-zero entries will be removed). </p>
+
+
+<h4>Example : </h4>
+\precode
+Matrix<double, General, ArrayRowComplexSparse> V(4, 3);
+// filling the matrix
+A.Set(1, 2, complex<double>(0.3, 1.5));
+A.Set(0, 3, complex<double>(0, 1.8));
+A.Set(0, 0, complex<double>(2.3, 0));
+A.Set(2, 1, complex<double>(-1.1, 0.7));
+
+// the matrix is resized
+// new matrix will contain the previous non-zero entries
+V.Resize(6, 10);
+cout << "Number of non-zero entries of V : " << V.GetDataSize() << endl;
+\endprecode
+
+
+<h4>Related topics : </h4>
+<p><a href="#Clear">Clear</a><br/>
+<a href="#Reallocate">Reallocate</a></p>
+
+
+<h4>Location :</h4>
+<p>Class Matrix_ArrayComplexSparse<br/>
+Class Matrix_ComplexSparse<br/>
+Class Matrix_SymComplexSparse<br/>
+Matrix_ArrayComplexSparse.hxx
+ Matrix_ArrayComplexSparse.cxx<br/>
+Matrix_ComplexSparse.hxx
+ Matrix_ComplexSparse.cxx<br/>
+Matrix_SymComplexSparse.hxx 
+Matrix_SymComplexSparse.cxx</p>
+
+
+
+<div class="separator"><a name="ValueReal"></a></div>
+
+
+
+<h3>ValueReal</h3>
+
+
+<h4>Syntax : </h4>
+ <pre class="syntax-box">
+  T ValueReal(int i, int j)
+</pre>
+
+
+<p>This method returns the j-th non-zero entry of real part of i-th row. It can be used to fill directly the matrix with IndexReal, and ReallocateRealRow. </p>
+
+
+<h4>Example : </h4>
+\precode
+Matrix<double, General, ArrayRowComplexSparse> V(4, 3);
+// filling the real part with IndexReal, ValueReal
+A.ReallocateRealRow(0, 2);
+A.IndexReal(0, 0) = 3;
+A.ValueReal(0, 0) = 1.8;
+A.IndexReal(0, 1) = 0;
+A.ValueReal(0, 1) = 2.3;
+// for row 0, the column indexes are not sorted -> call AssembleRealRow
+A.AssembleRealRow(0);
+// or provide sorted column indexes
+A.ReallocateRealRow(1, 1);
+A.IndexReal(1, 0) = 2;
+A.ValueReal(1, 0) = 0.3;
+A.ReallocateRealRow(2, 1);
+A.IndexReal(2, 0) = 1;
+A.ValueReal(2, 0) = -1.1;
+
+\endprecode
+
+
+<h4>Related topics : </h4>
+<p><a href="#ReallocateRealRow">ReallocateRealRow</a><br/>
+<a href="#IndexReal">IndexReal</a></p>
+
+
+<h4>Location :</h4>
+<p>Class Matrix_ArrayComplexSparse<br/>
+Matrix_ArrayComplexSparse.hxx
+ Matrix_ArrayComplexSparse.cxx</p>
+
+
+
+<div class="separator"><a name="ValueImag"></a></div>
+
+
+
+<h3>ValueImag</h3>
+
+
+<h4>Syntax : </h4>
+ <pre class="syntax-box">
+  T ValueImag(int i, int j)
+</pre>
+
+
+<p>This method returns the j-th non-zero entry of imaginary part of i-th row. It can be used to fill directly the matrix with IndexImag, and ReallocateImagRow. </p>
+
+
+<h4>Example : </h4>
+\precode
+Matrix<double, General, ArrayRowComplexSparse> V(4, 3);
+// filling the imaginary part with IndexImag, ValueImag
+A.ReallocateImagRow(0, 2);
+A.IndexImag(0, 0) = 3;
+A.ValueImag(0, 0) = 1.8;
+A.IndexImag(0, 1) = 0;
+A.ValueImag(0, 1) = 2.3;
+// for row 0, the column indexes are not sorted -> call AssembleImagRow
+A.AssembleImagRow(0);
+// or provide sorted column indexes
+A.ReallocateImagRow(1, 1);
+A.IndexImag(1, 0) = 2;
+A.ValueImag(1, 0) = 0.3;
+A.ReallocateImagRow(2, 1);
+A.IndexImag(2, 0) = 1;
+A.ValueImag(2, 0) = -1.1;
+
+\endprecode
+
+
+<h4>Related topics : </h4>
+<p><a href="#ReallocateImagRow">ReallocateImagRow</a><br/>
+<a href="#IndexImag">IndexImag</a></p>
+
+
+<h4>Location :</h4>
+<p>Class Matrix_ArrayComplexSparse<br/>
+Matrix_ArrayComplexSparse.hxx
+ Matrix_ArrayComplexSparse.cxx</p>
+
+
+
+<div class="separator"><a name="IndexReal"></a></div>
+
+
+
+<h3>IndexReal</h3>
+
+
+<h4>Syntax : </h4>
+ <pre class="syntax-box">
+  int IndexReal(int i, int j)
+</pre>
+
+
+<p>This method returns the column index of j-th non-zero entry of real part of i-th row. It can be used to fill directly the matrix with ValueReal, and ReallocateRealRow. </p>
+
+
+<h4>Example : </h4>
+\precode
+Matrix<double, General, ArrayRowComplexSparse> V(4, 3);
+// filling the real part with IndexReal, ValueReal
+A.ReallocateRealRow(0, 2);
+A.IndexReal(0, 0) = 3;
+A.ValueReal(0, 0) = 1.8;
+A.IndexReal(0, 1) = 0;
+A.ValueReal(0, 1) = 2.3;
+// for row 0, the column indexes are not sorted -> call AssembleRealRow
+A.AssembleRealRow(0);
+// or provide sorted column indexes
+A.ReallocateRealRow(1, 1);
+A.IndexReal(1, 0) = 2;
+A.ValueReal(1, 0) = 0.3;
+A.ReallocateRealRow(2, 1);
+A.IndexReal(2, 0) = 1;
+A.ValueReal(2, 0) = -1.1;
+
+\endprecode
+
+
+<h4>Related topics : </h4>
+<p><a href="#ReallocateRealRow">ReallocateRealRow</a><br/>
+<a href="#ValueReal">ValueReal</a></p>
+
+
+<h4>Location :</h4>
+<p>Class Matrix_ArrayComplexSparse<br/>
+Matrix_ArrayComplexSparse.hxx
+ Matrix_ArrayComplexSparse.cxx</p>
+
+
+
+<div class="separator"><a name="IndexImag"></a></div>
+
+
+
+<h3>IndexImag</h3>
+
+
+<h4>Syntax : </h4>
+ <pre class="syntax-box">
+  T IndexImag(int i, int j)
+</pre>
+
+
+<p>This method returns the column number of j-th non-zero entry of imaginary part of i-th row. It can be used to fill directly the matrix with ValueImag, and ReallocateImagRow. </p>
+
+
+<h4>Example : </h4>
+\precode
+Matrix<double, General, ArrayRowComplexSparse> V(4, 3);
+// filling the imaginary part with IndexImag, ValueImag
+A.ReallocateImagRow(0, 2);
+A.IndexImag(0, 0) = 3;
+A.ValueImag(0, 0) = 1.8;
+A.IndexImag(0, 1) = 0;
+A.ValueImag(0, 1) = 2.3;
+// for row 0, the column indexes are not sorted -> call AssembleImagRow
+A.AssembleImagRow(0);
+// or provide sorted column indexes
+A.ReallocateImagRow(1, 1);
+A.IndexImag(1, 0) = 2;
+A.ValueImag(1, 0) = 0.3;
+A.ReallocateImagRow(2, 1);
+A.IndexImag(2, 0) = 1;
+A.ValueImag(2, 0) = -1.1;
+
+\endprecode
+
+
+<h4>Related topics : </h4>
+<p><a href="#ReallocateImagRow">ReallocateImagRow</a><br/>
+<a href="#ValueImag">ValueImag</a></p>
+
+
+<h4>Location :</h4>
+<p>Class Matrix_ArrayComplexSparse<br/>
+Matrix_ArrayComplexSparse.hxx
+ Matrix_ArrayComplexSparse.cxx</p>
+
+
+
+<div class="separator"><a name="RemoveSmallEntry"></a></div>
+
+
+
+<h3>RemoveSmallEntry</h3>
+
+
+<h4>Syntax : </h4>
+ <pre class="syntax-box">
+  void RemoveSmallEntry(T epsilon)
+</pre>
+
+
+<p>This method drops non-zero entries which are smaller than a given epsilon. </p>
+
+
+<h4>Example : </h4>
+\precode
+Matrix<double, General, ArrayRowComplexSparse> A(4, 3);
+// you fill the matrix A
+
+// then you can remove small non-zero entries
+// i.e values such that |Re(A(i, j))| < epsilon and 
+// |Im(A(i, j))| < epsilon are removed
+A.RemoveSmallEntry(1e-3);
+
+\endprecode
+
+
+<h4>Related topics : </h4>
+<p><a href="#Zero">Zero</a><br/>
+<a href="#Fill">Fill</a></p>
+
+
+<h4>Location :</h4>
+<p>Class Matrix_ArrayComplexSparse<br/>
+Matrix_ArrayComplexSparse.hxx
+ Matrix_ArrayComplexSparse.cxx</p>
+
+
+
+<div class="separator"><a name="Zero"></a></div>
+
+
+
+<h3>Zero</h3>
+
+
+<h4>Syntax : </h4>
+ <pre class="syntax-box">
+  void Zero();
+</pre>
+
+
+<p>This method sets the value of non-zero entries to 0. It may be useful if you want 
+to keep the pattern of a matrix and reset the values. </p>
+
+
+<h4>Example : </h4>
+\precode
+Matrix<double, General, ArrayRowComplexSparse> A(4, 3);
+// you fill the matrix A
+A.GetReal(1, 3) = 2.5;
+A.GetImag(2, 4) = -0.6;
+// ...
+
+// then you can zero non-zero entries
+A.Zero();
+// and modify values of the pattern
+A.ValReal(1, 3) = 0.8;
+
+\endprecode
+
+
+<h4>Related topics : </h4>
+<p><a href="#AddInteraction">AddInteraction</a><br/>
+<a href="#Fill">Fill</a></p>
+
+
+<h4>Location :</h4>
+<p>Class Matrix_ArrayComplexSparse<br/>
+Class Matrix_ComplexSparse<br/>
+Class Matrix_SymComplexSparse<br/>
+Matrix_ArrayComplexSparse.hxx
+ Matrix_ArrayComplexSparse.cxx<br/>
+Matrix_ComplexSparse.hxx
+ Matrix_ComplexSparse.cxx<br/>
+Matrix_SymComplexSparse.hxx 
+Matrix_SymComplexSparse.cxx</p>
+
+
+
+<div class="separator"><a name="SetIdentity"></a></div>
+
+
+
+<h3>SetIdentity</h3>
+
+
+<h4>Syntax : </h4>
+ <pre class="syntax-box">
+  void SetIdentity();
+</pre>
+
+
+<p>This method forms the identity matrix. </p>
+
+
+<h4>Example : </h4>
+\precode
+Matrix<double, General, ArrayRowComplexSparse> A(10, 10);
+// you can initialize A with identity
+A.SetIdentity();
+
+\endprecode
+
+
+<h4>Related topics : </h4>
+<p><a href="#AddInteraction">AddInteraction</a><br/>
+<a href="#Fill">Fill</a></p>
+
+
+<h4>Location :</h4>
+<p>Class Matrix_ArrayComplexSparse<br/>
+Class Matrix_ComplexSparse<br/>
+Class Matrix_SymComplexSparse<br/>
+Matrix_ArrayComplexSparse.hxx
+ Matrix_ArrayComplexSparse.cxx<br/>
+Matrix_ComplexSparse.hxx
+ Matrix_ComplexSparse.cxx<br/>
+Matrix_SymComplexSparse.hxx 
+Matrix_SymComplexSparse.cxx</p>
+
+
+
+<div class="separator"><a name="Fill"></a></div>
+
+
+
+<h3>Fill</h3>
+
+
+<h4>Syntax : </h4>
+ <pre class="syntax-box">
+  void Fill();
+  void Fill(T val);
+</pre>
+
+
+<p>This method sets values of non-zero entries to 0, 1, 2, 3, etc  or with a given value val. The sparsity 
+pattern of the matrix keeps unchanged. </p>
+
+
+<h4>Example : </h4>
+\precode
+Matrix<double, General, ArrayRowComplexSparse> A(10, 10);
+// fill the matrix A
+A.GetReal(0, 2) = 1.4;
+A.GetReal(0, 1) = 0.5;
+A.GetReal(1, 7) = -2.1;
+A.GetReal(2, 3) = 1.7;
+A.GetImag(2, 3) = 0.9;
+A.GetImag(3, 5) = -3.3;
+
+// then you can put the same value on all non-zero entries :
+A.Fill(complex<double>(2.0, 1.0));
+// A will be equal to 
+// 0 1  (2.0, 0)
+// 0 2  (2.0, 0)
+// 1 7  (2.0, 0)
+// 2 3  (2.0, 1.0)
+// 3 5  (0.0, 1.0)
+
+// if you call Fill without argument, there will be 0, 1, 2, ...
+A.Fill();
+// A will be equal to 
+// 0 1 (0, 0)
+// 0 2  (1, 0)
+// 1 7  (2, 0)
+// 2 3  (3, 4)
+// 3 5  (0, 5)
+
+
+\endprecode
+
+
+<h4>Related topics : </h4>
+<p><a href="#AddInteraction">AddInteraction</a><br/>
+<a href="#FillRand">FillRand</a></p>
+
+
+<h4>Location :</h4>
+<p>Class Matrix_ArrayComplexSparse<br/>
+Class Matrix_ComplexSparse<br/>
+Class Matrix_SymComplexSparse<br/>
+Matrix_ArrayComplexSparse.hxx
+ Matrix_ArrayComplexSparse.cxx<br/>
+Matrix_ComplexSparse.hxx
+ Matrix_ComplexSparse.cxx<br/>
+Matrix_SymComplexSparse.hxx 
+Matrix_SymComplexSparse.cxx</p>
+
+
+
+<div class="separator"><a name="FillRand"></a></div>
+
+
+
+<h3>FillRand</h3>
+
+
+<h4>Syntax : </h4>
+ <pre class="syntax-box">
+  void FillRand();
+</pre>
+
+
+<p>This method sets randomly values of non-zero entries, the profile of the matrix is not modified. </p>
+
+
+<h4>Example : </h4>
+\precode
+Matrix<double, General, ArrayRowComplexSparse> A(10, 10);
+// fill the matrix A
+A.GetReal(0, 2) = 1.4;
+A.GetReal(0, 1) = 0.5;
+A.GetReal(1, 7) = -2.1;
+A.GetReal(2, 3) = 1.7;
+A.GetImag(2, 3) = 0.9;
+A.GetImag(3, 5) = -3.3;
+
+// then you can put random values on non-zero entries
+A.FillRand();
+// A will be equal to 
+// 0 1  (x0, 0)
+// 0 2  (x1, 0)
+// 1 7  (x2, 0)
+// 2 3  (x3, x4)
+// 3 5  (0.0, x5)
+// where x0, x1, x2, x3, x4, x5 are random numbers
+
+\endprecode
+
+
+<h4>Related topics : </h4>
+<p><a href="#AddInteraction">AddInteraction</a><br/>
+<a href="#Fill">Fill</a></p>
+
+
+<h4>Location :</h4>
+<p>Class Matrix_ArrayComplexSparse<br/>
+Class Matrix_ComplexSparse<br/>
+Class Matrix_SymComplexSparse<br/>
+Matrix_ArrayComplexSparse.hxx
+ Matrix_ArrayComplexSparse.cxx<br/>
+Matrix_ComplexSparse.hxx
+ Matrix_ComplexSparse.cxx<br/>
+Matrix_SymComplexSparse.hxx 
+Matrix_SymComplexSparse.cxx</p>
+
+
+
+<div class="separator"><a name="ReallocateRealRow"></a></div>
+
+
+
+<h3>ReallocateRealRow</h3>
+
+
+<h4>Syntax : </h4>
+ <pre class="syntax-box">
+  void ReallocateRealRow(int i, int size_row)
+</pre>
+
+
+<p>This method modifies the number of non-zero entries contained in real part of row i. All non-zero entries
+ of the real part of the row are resetted, you need to initialize them with IndexReal, ValueReal. </p>
+
+
+<h4>Example : </h4>
+\precode
+Matrix<double, General, ArrayRowComplexSparse> A(12, 8);
+// initializing row 0 with 3 non-zero entries :
+A.ReallocateRealRow(0, 3);
+A.IndexReal(0, 0) = 0; A.ValueReal(0, 0) = 2.3;
+A.IndexReal(0, 1) = 3; A.ValueReal(0, 1) = -0.8;
+A.IndexReal(0, 2) = 7; A.ValueReal(0, 2) = 1.9;
+// row 1 with 4 non-zero entries
+A.ReallocateRealRow(1, 4);
+A.IndexReal(1, 0) = 5; A.ValueReal(1, 0) = 3.1;
+A.IndexReal(1, 1) = 1; A.ValueReal(1, 1) = -1.3;
+A.IndexReal(1, 2) = 0; A.ValueReal(1, 2) = 2.4;
+A.IndexReal(1, 3) = 2; A.ValueReal(1, 3) = 0.4;
+// column numbers are not sorted -> AssembleRealRow
+A.AssembleRealRow(1);
+
+\endprecode
+
+
+<h4>Related topics : </h4>
+<p><a href="#AssembleRealRow">AssembleRealRow</a><br/>
+<a href="#ValueReal">ValueReal</a><br/>
+<a href="#IndexReal">IndexReal</a></p>
+
+
+<h4>Location :</h4>
+<p>Class Matrix_ArrayComplexSparse<br/>
+Matrix_ArrayComplexSparse.hxx
+ Matrix_ArrayComplexSparse.cxx</p>
+
+
+
+<div class="separator"><a name="ReallocateImagRow"></a></div>
+
+
+
+<h3>ReallocateImagRow</h3>
+
+
+<h4>Syntax : </h4>
+ <pre class="syntax-box">
+  void ReallocateImagRow(int i, int size_row)
+</pre>
+
+
+<p>This method modifies the number of non-zero entries contained in imaginary part of row i. All non-zero entries
+ of the imaginary part of the row are resetted, you need to initialize them with IndexImag, ValueImag. </p>
+
+
+<h4>Example : </h4>
+\precode
+Matrix<double, General, ArrayRowComplexSparse> A(12, 8);
+// initializing row 0 with 3 non-zero entries :
+A.ReallocateImagRow(0, 3);
+A.IndexImag(0, 0) = 0; A.ValueImag(0, 0) = 2.3;
+A.IndexImag(0, 1) = 3; A.ValueImag(0, 1) = -0.8;
+A.IndexImag(0, 2) = 7; A.ValueImag(0, 2) = 1.9;
+// row 1 with 4 non-zero entries
+A.ReallocateImagRow(1, 4);
+A.IndexImag(1, 0) = 5; A.ValueImag(1, 0) = 3.1;
+A.IndexImag(1, 1) = 1; A.ValueImag(1, 1) = -1.3;
+A.IndexImag(1, 2) = 0; A.ValueImag(1, 2) = 2.4;
+A.IndexImag(1, 3) = 2; A.ValueImag(1, 3) = 0.4;
+// column numbers are not sorted -> AssembleImagRow
+A.AssembleImagRow(1);
+
+\endprecode
+
+
+<h4>Related topics : </h4>
+<p><a href="#AssembleImagRow">AssembleImagRow</a><br/>
+<a href="#ValueImag">ValueImag</a><br/>
+<a href="#IndexImag">IndexImag</a></p>
+
+
+<h4>Location :</h4>
+<p>Class Matrix_ArrayComplexSparse<br/>
+Matrix_ArrayComplexSparse.hxx
+ Matrix_ArrayComplexSparse.cxx</p>
+
+
+
+<div class="separator"><a name="ResizeRealRow"></a></div>
+
+
+
+<h3>ResizeRealRow</h3>
+
+
+<h4>Syntax : </h4>
+ <pre class="syntax-box">
+  void ResizeRealRow(int i, int size_row)
+</pre>
+
+
+<p>This method modifies the number of non-zero entries contained in real part of row i. Previous non-zero entries
+ of the real part of the row are kept. If there are new non-zero entries, you need to initialize them with IndexReal, ValueReal. </p>
+
+
+<h4>Example : </h4>
+\precode
+Matrix<double, General, ArrayRowComplexSparse> A(12, 8);
+// initializing row 0 with 3 non-zero entries :
+A.ReallocateRealRow(0, 3);
+A.IndexReal(0, 0) = 0; A.ValueReal(0, 0) = 2.3;
+A.IndexReal(0, 1) = 3; A.ValueReal(0, 1) = -0.8;
+A.IndexReal(0, 2) = 7; A.ValueReal(0, 2) = 1.9;
+// row 1 with 4 non-zero entries
+A.ReallocateRealRow(1, 4);
+A.IndexReal(1, 0) = 5; A.ValueReal(1, 0) = 3.1;
+A.IndexReal(1, 1) = 1; A.ValueReal(1, 1) = -1.3;
+A.IndexReal(1, 2) = 0; A.ValueReal(1, 2) = 2.4;
+A.IndexReal(1, 3) = 2; A.ValueReal(1, 3) = 0.4;
+// column numbers are not sorted -> AssembleRealRow
+A.AssembleRealRow(1);
+
+// adding a new zero-entry in row 0 :
+A.ResizeRealRow(0, 4);
+A.IndexReal(0, 3) = 4; A.ValueReal(0, 3) = 4.5;
+// column numbers are not sorted -> Assemble
+A.AssembleRealRow(0);
+
+// removing last non-zero entry in row (col 5 value 3.1)
+A.ResizeRealRow(1, 3);
+
+\endprecode
+
+
+<h4>Related topics : </h4>
+<p><a href="#AssembleRealRow">AssembleRealRow</a><br/>
+<a href="#ValueReal">ValueReal</a><br/>
+<a href="#IndexReal">IndexReal</a></p>
+
+
+<h4>Location :</h4>
+<p>Class Matrix_ArrayComplexSparse<br/>
+Matrix_ArrayComplexSparse.hxx
+ Matrix_ArrayComplexSparse.cxx</p>
+
+
+
+<div class="separator"><a name="ResizeImagRow"></a></div>
+
+
+
+<h3>ResizeImagRow</h3>
+
+
+<h4>Syntax : </h4>
+ <pre class="syntax-box">
+  void ResizeImagRow(int i, int size_row)
+</pre>
+
+
+<p>This method modifies the number of non-zero entries contained in imaginary part of row i. Previous non-zero entries
+ of the imaginary part of the row are kept. If there are new non-zero entries, you need to initialize them with IndexImag, ValueImag. </p>
+
+
+<h4>Example : </h4>
+\precode
+Matrix<double, General, ArrayRowComplexSparse> A(12, 8);
+// initializing row 0 with 3 non-zero entries :
+A.ReallocateImagRow(0, 3);
+A.IndexImag(0, 0) = 0; A.ValueImag(0, 0) = 2.3;
+A.IndexImag(0, 1) = 3; A.ValueImag(0, 1) = -0.8;
+A.IndexImag(0, 2) = 7; A.ValueImag(0, 2) = 1.9;
+// row 1 with 4 non-zero entries
+A.ReallocateImagRow(1, 4);
+A.IndexImag(1, 0) = 5; A.ValueImag(1, 0) = 3.1;
+A.IndexImag(1, 1) = 1; A.ValueImag(1, 1) = -1.3;
+A.IndexImag(1, 2) = 0; A.ValueImag(1, 2) = 2.4;
+A.IndexImag(1, 3) = 2; A.ValueImag(1, 3) = 0.4;
+// column numbers are not sorted -> AssembleImagRow
+A.AssembleImagRow(1);
+
+// adding a new zero-entry in row 0 :
+A.ResizeImagRow(0, 4);
+A.IndexImag(0, 3) = 4; A.ValueImag(0, 3) = 4.5;
+// column numbers are not sorted -> Assemble
+A.AssembleImagRow(0);
+
+// removing last non-zero entry in row (col 5 value 3.1)
+A.ResizeImagRow(1, 3);
+
+\endprecode
+
+
+<h4>Related topics : </h4>
+<p><a href="#AssembleImagRow">AssembleImagRow</a><br/>
+<a href="#ValueImag">ValueImag</a><br/>
+<a href="#IndexImag">IndexImag</a></p>
+
+
+<h4>Location :</h4>
+<p>Class Matrix_ArrayComplexSparse<br/>
+Matrix_ArrayComplexSparse.hxx
+ Matrix_ArrayComplexSparse.cxx</p>
+
+
+
+<div class="separator"><a name="ClearRealRow"></a></div>
+
+
+
+<h3>ClearRealRow</h3>
+
+
+<h4>Syntax : </h4>
+ <pre class="syntax-box">
+  void ClearRealRow(int i)
+</pre>
+
+
+<p>This method clears the real part of row i. </p>
+
+
+<h4>Example : </h4>
+\precode
+Matrix<double, General, ArrayRowComplexSparse> A(12, 8);
+// initializing row 0 with 3 non-zero entries :
+A.ReallocateRealRow(0, 3);
+A.IndexReal(0, 0) = 0; A.ValueReal(0, 0) = 2.3;
+A.IndexReal(0, 1) = 3; A.ValueReal(0, 1) = -0.8;
+A.IndexReal(0, 2) = 7; A.ValueReal(0, 2) = 1.9;
+// row 1 with 4 non-zero entries
+A.ReallocateRealRow(1, 4);
+A.IndexReal(1, 0) = 5; A.ValueReal(1, 0) = 3.1;
+A.IndexReal(1, 1) = 1; A.ValueReal(1, 1) = -1.3;
+A.IndexReal(1, 2) = 0; A.ValueReal(1, 2) = 2.4;
+A.IndexReal(1, 3) = 2; A.ValueReal(1, 3) = 0.4;
+// column numbers are not sorted -> AssembleRealRow
+A.AssembleRealRow(1);
+
+// removing all non-zero entries of row 0
+A.ClearRealRow(0);
+
+\endprecode
+
+
+<h4>Related topics : </h4>
+<p><a href="#ReallocateRealRow">ReallocateRealRow</a><br/>
+<a href="#ResizeRealRow">ResizeRealRow</a><br/>
+<a href="#Clear">Clear</a></p>
+
+
+<h4>Location :</h4>
+<p>Class Matrix_ArrayComplexSparse<br/>
+Matrix_ArrayComplexSparse.hxx
+ Matrix_ArrayComplexSparse.cxx</p>
+
+
+
+<div class="separator"><a name="ClearImagRow"></a></div>
+
+
+
+<h3>ClearImagRow</h3>
+
+
+<h4>Syntax : </h4>
+ <pre class="syntax-box">
+  void ClearImagRow(int i)
+</pre>
+
+
+<p>This method clears the imaginary part of row i. </p>
+
+
+<h4>Example : </h4>
+\precode
+Matrix<double, General, ArrayRowComplexSparse> A(12, 8);
+// initializing row 0 with 3 non-zero entries :
+A.ReallocateImagRow(0, 3);
+A.IndexImag(0, 0) = 0; A.ValueImag(0, 0) = 2.3;
+A.IndexImag(0, 1) = 3; A.ValueImag(0, 1) = -0.8;
+A.IndexImag(0, 2) = 7; A.ValueImag(0, 2) = 1.9;
+// row 1 with 4 non-zero entries
+A.ReallocateRealRow(1, 4);
+A.IndexImag(1, 0) = 5; A.ValueImag(1, 0) = 3.1;
+A.IndexImag(1, 1) = 1; A.ValueImag(1, 1) = -1.3;
+A.IndexImag(1, 2) = 0; A.ValueImag(1, 2) = 2.4;
+A.IndexImag(1, 3) = 2; A.ValueImag(1, 3) = 0.4;
+// column numbers are not sorted -> AssembleImagRow
+A.AssembleImagRow(1);
+
+// removing all non-zero entries of row 0
+A.ClearImagRow(0);
+
+\endprecode
+
+
+<h4>Related topics : </h4>
+<p><a href="#ReallocateImagRow">ReallocateImagRow</a><br/>
+<a href="#ResizeImagRow">ResizeImagRow</a><br/>
+<a href="#Clear">Clear</a></p>
+
+
+<h4>Location :</h4>
+<p>Class Matrix_ArrayComplexSparse<br/>
+Matrix_ArrayComplexSparse.hxx
+ Matrix_ArrayComplexSparse.cxx</p>
+
+
+
+<div class="separator"><a name="SwapRealRow"></a></div>
+
+
+
+<h3>SwapRealRow</h3>
+
+
+<h4>Syntax : </h4>
+ <pre class="syntax-box">
+  void SwapRealRow(int i, int j)
+</pre>
+
+
+<p>This method swaps the rows i and j (only real part), the columns numbers are unchanged. This method should be considered carefully
+ for symmetric matrices, since the condition i <= j may be not satisfied anymore after swapping the rows. </p>
+
+
+<h4>Example : </h4>
+\precode
+Matrix<double, General, ArrayRowComplexSparse> A(12, 8);
+// initializing row 0 with 3 non-zero entries :
+A.ReallocateRealRow(0, 3);
+A.IndexReal(0, 0) = 0; A.ValueReal(0, 0) = 2.3;
+A.IndexReal(0, 1) = 3; A.ValueReal(0, 1) = -0.8;
+A.IndexReal(0, 2) = 7; A.ValueReal(0, 2) = 1.9;
+// row 1 with 4 non-zero entries
+A.ReallocateRealRow(1, 4);
+A.IndexReal(1, 0) = 5; A.ValueReal(1, 0) = 3.1;
+A.IndexReal(1, 1) = 1; A.ValueReal(1, 1) = -1.3;
+A.IndexReal(1, 2) = 0; A.ValueReal(1, 2) = 2.4;
+A.IndexReal(1, 3) = 2; A.ValueReal(1, 3) = 0.4;
+// column numbers are not sorted -> AssembleRealRow
+A.AssembleRealRow(1);
+
+// exchanging contents of row 0 and row 1
+A.SwapRealRow(0, 1);
+
+\endprecode
+
+
+<h4>Related topics : </h4>
+<p><a href="#ReallocateRealRow">ReallocateRealRow</a><br/>
+<a href="#ResizeRealRow">ResizeRealRow</a><br/>
+<a href="#Clear">Clear</a></p>
+
+
+<h4>Location :</h4>
+<p>Class Matrix_ArrayComplexSparse<br/>
+Matrix_ArrayComplexSparse.hxx
+ Matrix_ArrayComplexSparse.cxx</p>
+
+
+
+<div class="separator"><a name="SwapImagRow"></a></div>
+
+
+
+<h3>SwapImagRow</h3>
+
+
+<h4>Syntax : </h4>
+ <pre class="syntax-box">
+  void SwapImagRow(int i, int j)
+</pre>
+
+
+<p>This method swaps the rows i and j (only imaginary part), the columns numbers are unchanged. This method should be considered carefully
+ for symmetric matrices, since the condition i <= j may be not satisfied anymore after swapping the rows. </p>
+
+
+<h4>Example : </h4>
+\precode
+Matrix<double, General, ArrayRowComplexSparse> A(12, 8);
+// initializing row 0 with 3 non-zero entries :
+A.ReallocateImagRow(0, 3);
+A.IndexImag(0, 0) = 0; A.ValueImag(0, 0) = 2.3;
+A.IndexImag(0, 1) = 3; A.ValueImag(0, 1) = -0.8;
+A.IndexImag(0, 2) = 7; A.ValueImag(0, 2) = 1.9;
+// row 1 with 4 non-zero entries
+A.ReallocateImagRow(1, 4);
+A.IndexImag(1, 0) = 5; A.ValueImag(1, 0) = 3.1;
+A.IndexImag(1, 1) = 1; A.ValueImag(1, 1) = -1.3;
+A.IndexImag(1, 2) = 0; A.ValueImag(1, 2) = 2.4;
+A.IndexImag(1, 3) = 2; A.ValueImag(1, 3) = 0.4;
+// column numbers are not sorted -> AssembleImagRow
+A.AssembleImagRow(1);
+
+// exchanging contents of row 0 and row 1
+A.SwapImagRow(0, 1);
+
+\endprecode
+
+
+<h4>Related topics : </h4>
+<p><a href="#ReallocateImagRow">ReallocateImagRow</a><br/>
+<a href="#ResizeImagRow">ResizeImagRow</a><br/>
+<a href="#Clear">Clear</a></p>
+
+
+<h4>Location :</h4>
+<p>Class Matrix_ArrayComplexSparse<br/>
+Matrix_ArrayComplexSparse.hxx
+ Matrix_ArrayComplexSparse.cxx</p>
+
+
+
+<div class="separator"><a name="ReplaceRealIndexRow"></a></div>
+
+
+
+<h3>ReplaceRealIndexRow</h3>
+
+
+<h4>Syntax : </h4>
+ <pre class="syntax-box">
+  void ReplaceRealIndexRow(int i, Vector<int>& ind)
+</pre>
+
+
+<p>This method replaces column numbers of real part of row i. The size of array ind must be greater or equal to the size of the row i.</p>
+
+
+<h4>Example : </h4>
+\precode
+Matrix<double, General, ArrayRowComplexSparse> A(12, 8);
+// initializing row 0 with 3 non-zero entries :
+A.ReallocateRealRow(0, 3);
+A.IndexReal(0, 0) = 0; A.ValueReal(0, 0) = 2.3;
+A.IndexReal(0, 1) = 3; A.ValueReal(0, 1) = -0.8;
+A.IndexReal(0, 2) = 7; A.ValueReal(0, 2) = 1.9;
+
+// column numbers are not 0, 3, 7, but 1, 2, 6 =>
+IVect new_col(3);
+new_col(0) = 1;
+new_col(1) = 2;
+new_col(2) = 6;
+A.ReplaceRealIndexRow(0, new_col);
+
+\endprecode
+
+
+<h4>Related topics : </h4>
+<p><a href="#ReallocateRealRow">ReallocateRealRow</a><br/>
+<a href="#ResizeRealRow">ResizeRealRow</a><br/>
+<a href="#AssembleRealRow">AssembleRealRow</a></p>
+
+
+<h4>Location :</h4>
+<p>Class Matrix_ArrayComplexSparse<br/>
+Matrix_ArrayComplexSparse.hxx
+ Matrix_ArrayComplexSparse.cxx</p>
+
+
+
+<div class="separator"><a name="ReplaceImagIndexRow"></a></div>
+
+
+
+<h3>ReplaceImagIndexRow</h3>
+
+
+<h4>Syntax : </h4>
+ <pre class="syntax-box">
+  void ReplaceImagIndexRow(int i, Vector<int>& ind)
+</pre>
+
+
+<p>This method replaces column numbers of imaginary part of row i. The size of array ind must be greater or equal to the size of the row i.</p>
+
+
+<h4>Example : </h4>
+\precode
+Matrix<double, General, ArrayRowComplexSparse> A(12, 8);
+// initializing row 0 with 3 non-zero entries :
+A.ReallocateImagRow(0, 3);
+A.IndexImag(0, 0) = 0; A.ValueImag(0, 0) = 2.3;
+A.IndexImag(0, 1) = 3; A.ValueImag(0, 1) = -0.8;
+A.IndexImag(0, 2) = 7; A.ValueImag(0, 2) = 1.9;
+
+// column numbers are not 0, 3, 7, but 1, 2, 6 =>
+IVect new_col(3);
+new_col(0) = 1;
+new_col(1) = 2;
+new_col(2) = 6;
+A.ReplaceImagIndexRow(0, new_col);
+
+\endprecode
+
+
+<h4>Related topics : </h4>
+<p><a href="#ReallocateImagRow">ReallocateImagRow</a><br/>
+<a href="#ResizeImagRow">ResizeImagRow</a><br/>
+<a href="#AssembleImagRow">AssembleImagRow</a></p>
+
+
+<h4>Location :</h4>
+<p>Class Matrix_ArrayComplexSparse<br/>
+Matrix_ArrayComplexSparse.hxx
+ Matrix_ArrayComplexSparse.cxx</p>
+
+
+
+<div class="separator"><a name="GetRealRowSize"></a></div>
+
+
+
+<h3>GetRealRowSize</h3>
+
+
+<h4>Syntax : </h4>
+ <pre class="syntax-box">
+ int GetRealRowSize(int i) const
+</pre>
+
+
+<p>This method returns the number of non-zero entries contained in the real part of i-th row.</p>
+
+
+<h4>Example : </h4>
+\precode
+Matrix<double, General, ArrayRowComplexSparse> A(12, 8);
+// initializing row 0 with 3 non-zero entries :
+A.ReallocateRealRow(0, 3);
+A.IndexReal(0, 0) = 0; A.ValueReal(0, 0) = 2.3;
+A.IndexReal(0, 1) = 3; A.ValueReal(0, 1) = -0.8;
+A.IndexReal(0, 2) = 7; A.ValueReal(0, 2) = 1.9;
+
+// GetRealRowSize should return 3
+cout << "Number of non-zero entries in row 0 : " << A.GetRealRowSize(0, 3) << endl;
+
+\endprecode
+
+
+<h4>Related topics : </h4>
+<p><a href="#ReallocateRealRow">ReallocateRealRow</a><br/>
+<a href="#ResizeRealRow">ResizeRealRow</a><br/>
+<a href="#AssembleRealRow">AssembleRealRow</a></p>
+
+
+<h4>Location :</h4>
+<p>Class Matrix_ArrayComplexSparse<br/>
+Matrix_ArrayComplexSparse.hxx
+ Matrix_ArrayComplexSparse.cxx</p>
+
+
+
+<div class="separator"><a name="GetImagRowSize"></a></div>
+
+
+
+<h3>GetImagRowSize</h3>
+
+
+<h4>Syntax : </h4>
+ <pre class="syntax-box">
+ int GetImagRowSize(int i) const
+</pre>
+
+
+<p>This method returns the number of non-zero entries contained in the imaginary part of i-th row.</p>
+
+
+<h4>Example : </h4>
+\precode
+Matrix<double, General, ArrayRowComplexSparse> A(12, 8);
+// initializing row 0 with 3 non-zero entries :
+A.ReallocateImagRow(0, 3);
+A.IndexImag(0, 0) = 0; A.ValueImag(0, 0) = 2.3;
+A.IndexImag(0, 1) = 3; A.ValueImag(0, 1) = -0.8;
+A.IndexImag(0, 2) = 7; A.ValueImag(0, 2) = 1.9;
+
+// GetImagRowSize should return 3
+cout << "Number of non-zero entries in row 0 : " << A.GetImagRowSize(0, 3) << endl;
+
+\endprecode
+
+
+<h4>Related topics : </h4>
+<p><a href="#ReallocateImagRow">ReallocateImagRow</a><br/>
+<a href="#ResizeImagRow">ResizeImagRow</a><br/>
+<a href="#AssembleImagRow">AssembleImagRow</a></p>
+
+
+<h4>Location :</h4>
+<p>Class Matrix_ArrayComplexSparse<br/>
+Matrix_ArrayComplexSparse.hxx
+ Matrix_ArrayComplexSparse.cxx</p>
+
+
+
+<div class="separator"><a name="PrintRealRow"></a></div>
+
+
+
+<h3>PrintRealRow</h3>
+
+
+<h4>Syntax : </h4>
+ <pre class="syntax-box">
+ void PrintRealRow(int i) const
+</pre>
+
+
+<p>This method displays the real part of i-th row.</p>
+
+
+<h4>Example : </h4>
+\precode
+Matrix<double, General, ArrayRowComplexSparse> A(12, 8);
+// displaying row 3
+cout << "Row 3 = " << endl;
+A.PrintRealRow(3);
+\endprecode
+
+
+<h4>Related topics : </h4>
+<p><a href="#Print">Print</a><br/>
+<a href="#WriteText">WriteText</a></p>
+
+
+<h4>Location :</h4>
+<p>Class Matrix_ArrayComplexSparse<br/>
+Matrix_ArrayComplexSparse.hxx
+ Matrix_ArrayComplexSparse.cxx</p>
+
+
+
+<div class="separator"><a name="PrintImagRow"></a></div>
+
+
+
+<h3>PrintImagRow</h3>
+
+
+<h4>Syntax : </h4>
+ <pre class="syntax-box">
+ void PrintImagRow(int i) const
+</pre>
+
+
+<p>This method displays the imaginary part of i-th row.</p>
+
+
+<h4>Example : </h4>
+\precode
+Matrix<double, General, ArrayRowComplexSparse> A(12, 8);
+// displaying row 3
+cout << "Row 3 = " << endl;
+A.PrintImagRow(3);
+\endprecode
+
+
+<h4>Related topics : </h4>
+<p><a href="#Print">Print</a><br/>
+<a href="#WriteText">WriteText</a></p>
+
+
+<h4>Location :</h4>
+<p>Class Matrix_ArrayComplexSparse<br/>
+Matrix_ArrayComplexSparse.hxx
+ Matrix_ArrayComplexSparse.cxx</p>
+
+
+
+<div class="separator"><a name="AssembleRealRow"></a></div>
+
+
+
+<h3>AssembleRealRow</h3>
+
+
+<h4>Syntax : </h4>
+ <pre class="syntax-box">
+  void AssembleRealRow(int i)
+</pre>
+
+
+<p>This method sorts column numbers of real part of a row, and adds values if there are duplicate column numbers. This method
+ is not necessary if you are using AddInteraction, AddInteractionRow, GetReal, GetImag or Set. </p>
+
+
+<h4>Example : </h4>
+\precode
+Matrix<double, General, ArrayRowComplexSparse> A(12, 8);
+// initializing row 0 with 3 non-zero entries :
+A.ReallocateRealRow(0, 3);
+A.IndexReal(0, 0) = 0; A.ValueReal(0, 0) = 2.3;
+A.IndexReal(0, 1) = 3; A.ValueReal(0, 1) = -0.8;
+A.IndexReal(0, 2) = 7; A.ValueReal(0, 2) = 1.9;
+// row 1 with 4 non-zero entries
+A.ReallocateRealRow(1, 4);
+A.IndexReal(1, 0) = 5; A.ValueReal(1, 0) = 3.1;
+A.IndexReal(1, 1) = 1; A.ValueReal(1, 1) = -1.3;
+A.IndexReal(1, 2) = 0; A.ValueReal(1, 2) = 2.4;
+A.IndexReal(1, 3) = 2; A.ValueReal(1, 3) = 0.4;
+// column numbers are not sorted -> AssembleRealRow
+A.AssembleRealRow(1);
+
+\endprecode
+
+
+<h4>Related topics : </h4>
+<p><a href="#AddInteraction">AddInteraction</a><br/>
+<a href="#AddInteractionRow">AddInteractionRow</a><br/>
+<a href="#Set">Set</a></p>
+
+
+<h4>Location :</h4>
+<p>Class Matrix_ArrayComplexSparse<br/>
+Matrix_ArrayComplexSparse.hxx
+ Matrix_ArrayComplexSparse.cxx</p>
+
+
+
+<div class="separator"><a name="AssembleImagRow"></a></div>
+
+
+
+<h3>AssembleImagRow</h3>
+
+
+<h4>Syntax : </h4>
+ <pre class="syntax-box">
+  void AssembleImagRow(int i)
+</pre>
+
+
+<p>This method sorts column numbers of imaginary part of a row, and adds values if there are duplicate column numbers. This method
+ is not necessary if you are using AddInteraction, AddInteractionRow, GetReal, GetImag or Set. </p>
+
+
+<h4>Example : </h4>
+\precode
+Matrix<double, General, ArrayRowComplexSparse> A(12, 8);
+// initializing row 0 with 3 non-zero entries :
+A.ReallocateImagRow(0, 3);
+A.IndexImag(0, 0) = 0; A.ValueImag(0, 0) = 2.3;
+A.IndexImag(0, 1) = 3; A.ValueImag(0, 1) = -0.8;
+A.IndexImag(0, 2) = 7; A.ValueImag(0, 2) = 1.9;
+// row 1 with 4 non-zero entries
+A.ReallocateImagRow(1, 4);
+A.IndexImag(1, 0) = 5; A.ValueImag(1, 0) = 3.1;
+A.IndexImag(1, 1) = 1; A.ValueImag(1, 1) = -1.3;
+A.IndexImag(1, 2) = 0; A.ValueImag(1, 2) = 2.4;
+A.IndexImag(1, 3) = 2; A.ValueImag(1, 3) = 0.4;
+// column numbers are not sorted -> AssembleImagRow
+A.AssembleImagRow(1);
+
+\endprecode
+
+
+<h4>Related topics : </h4>
+<p><a href="#AddInteraction">AddInteraction</a><br/>
+<a href="#AddInteractionRow">AddInteractionRow</a><br/>
+<a href="#Set">Set</a></p>
+
+
+<h4>Location :</h4>
+<p>Class Matrix_ArrayComplexSparse<br/>
+Matrix_ArrayComplexSparse.hxx
+ Matrix_ArrayComplexSparse.cxx</p>
+
+
+
+<div class="separator"><a name="AddInteraction"></a></div>
+
+
+
+<h3>AddInteraction</h3>
+
+
+<h4>Syntax : </h4>
+ <pre class="syntax-box">
+  void AddInteraction(int i, int j, complex<T> val)
+</pre>
+
+
+<p>This method adds val to A(i, j). If there is no non-zero entry at this position, a new non-zero entry is created. </p>
+
+
+<h4>Example : </h4>
+\precode
+// initially the matrix is equal to 0 (empty)
+Matrix<double, General, ArrayRowComplexSparse> A(12, 8);
+// then you add values with AddInteraction
+A.AddInteraction(0, 1, complex<double>(1.2, 0));
+A.AddInteraction(1, 2, complex<double>(1.8, 0.2));
+A.AddInteraction(3, 0, complex<double>(0, 0.5));
+A.AddInteraction(4, 5, complex<double>(0, 1.6));
+A.AddInteraction(6, 2, complex<double>(-2.0, 0.2));
+
+// you can also use AddInteractionRow, if there are several values
+// to add in the same time, these values may be not sorted
+int nb_val = 4;
+IVect col(nb_val);
+Vector<complex<double> > values(nb_val);
+col(0) = 0; values(0) = complex<double>(2.1, 0);
+col(1) = 7; values(1) = complex<double>(0, 0.8);
+col(2) = 3; values(2) = complex<double>(-2.6, 0);
+col(3) = 2; values(3) = complex<double>(0.9, -3.4);
+
+A.AddInteractionRow(6, nb_val, col, values);
+
+
+\endprecode
+
+
+<h4>Related topics : </h4>
+<p><a href="#AddInteractionRow">AddInteractionRow</a><br/>
+<a href="#AddInteractionColumn">AddInteractionColumn</a><br/>
+<a href="#Set">Set</a></p>
+
+
+<h4>Location :</h4>
+<p>Class Matrix_ArrayComplexSparse<br/>
+Matrix_ArrayComplexSparse.hxx
+ Matrix_ArrayComplexSparse.cxx</p>
+
+
+
+<div class="separator"><a name="AddInteractionRow"></a></div>
+
+
+
+<h3>AddInteractionRow</h3>
+
+
+<h4>Syntax : </h4>
+ <pre class="syntax-box">
+  void AddInteractionRow(int i, int nb_values, const IVect col, const Vector<complex<T> > val)
+</pre>
+
+
+<p>This method adds nb_values values in row i. For each value to add, you provide the column number and the value. </p>
+
+
+<h4>Example : </h4>
+\precode
+// initially the matrix is equal to 0 (empty)
+Matrix<double, General, ArrayRowComplexSparse> A(12, 8);
+// then you add values with AddInteraction
+A.AddInteraction(0, 1, complex<double>(1.2, 0));
+A.AddInteraction(1, 2, complex<double>(1.8, 0.2));
+A.AddInteraction(3, 0, complex<double>(0, 0.5));
+A.AddInteraction(4, 5, complex<double>(0, 1.6));
+A.AddInteraction(6, 2, complex<double>(-2.0, 0.2));
+
+// you can also use AddInteractionRow, if there are several values
+// to add in the same time, these values may be not sorted
+int nb_val = 4;
+IVect col(nb_val);
+Vector<complex<double> > values(nb_val);
+col(0) = 0; values(0) = complex<double>(2.1, 0);
+col(1) = 7; values(1) = complex<double>(0, 0.8);
+col(2) = 3; values(2) = complex<double>(-2.6, 0);
+col(3) = 2; values(3) = complex<double>(0.9, -3.4);
+
+A.AddInteractionRow(6, nb_val, col, values);
+
+\endprecode
+
+
+<h4>Related topics : </h4>
+<p><a href="#AddInteraction">AddInteraction</a><br/>
+<a href="#AddInteractionColumn">AddInteractionColumn</a><br/>
+<a href="#Set">Set</a></p>
+
+
+<h4>Location :</h4>
+<p>Class Matrix_ArrayComplexSparse<br/>
+Matrix_ArrayComplexSparse.hxx
+ Matrix_ArrayComplexSparse.cxx</p>
+
+
+
+<div class="separator"><a name="AddInteractionColumn"></a></div>
+
+
+
+<h3>AddInteractionColumn</h3>
+
+
+<h4>Syntax : </h4>
+ <pre class="syntax-box">
+  void AddInteractionColumn(int i, int nb_values, const IVect row, const Vector<complex<T> > val)
+</pre>
+
+
+<p>This method adds nb_values values in column i. For each value to add, you provide the row number and the value. </p>
+
+
+<h4>Example : </h4>
+\precode
+// initially the matrix is equal to 0 (empty)
+Matrix<double, General, ArrayRowComplexSparse> A(12, 8);
+// then you add values with AddInteraction
+A.AddInteraction(0, 1, complex<double>(1.2, 0));
+A.AddInteraction(1, 2, complex<double>(1.8, 0.2));
+A.AddInteraction(3, 0, complex<double>(0, 0.5));
+A.AddInteraction(4, 5, complex<double>(0, 1.6));
+A.AddInteraction(6, 2, complex<double>(-2.0, 0.2));
+
+// you can also use AddInteractionColumn, if there are several values
+// to add in the same time, these values may be not sorted
+int nb_val = 4;
+IVect row(nb_val);
+Vector<complex<double> > values(nb_val);
+row(0) = 0; values(0) = complex<double>(2.1, 0);
+row(1) = 7; values(1) = complex<double>(0, 0.8);
+row(2) = 3; values(2) = complex<double>(-2.6, 0);
+row(3) = 2; values(3) = complex<double>(0.9, -3.4);
+
+A.AddInteractionColumn(5, nb_val, col, values);
+
+\endprecode
+
+
+<h4>Related topics : </h4>
+<p><a href="#AddInteractionRow">AddInteractionRow</a><br/>
+<a href="#AddInteraction">AddInteraction</a><br/>
+<a href="#Set">Set</a></p>
+
+
+<h4>Location :</h4>
+<p>Class Matrix_ArrayComplexSparse<br/>
+Matrix_ArrayComplexSparse.hxx
+ Matrix_ArrayComplexSparse.cxx</p>
+
+
+
+<div class="separator"><a name="Print"></a></div>
+
+
+
+<h3>Print</h3>
+
+
+<h4>Syntax : </h4>
+ <pre class="syntax-box">
+  void Print()
+</pre>
+
+
+<p>This method displays the matrix. </p>
+
+
+<h4>Example : </h4>
+\precode
+Matrix<double, General, ArrayRowComplexSparse> A(4, 3);
+cout << " A = " << endl;
+A.Print();
+\endprecode
+
+
+<h4>Related topics : </h4>
+<p><a href="#Write">Write</a><br/>
+<a href="#WriteText">WriteText</a></p>
+
+
+<h4>Location :</h4>
+<p>Class Matrix_ArrayComplexSparse<br/>
+Class Matrix_ComplexSparse<br/>
+Class Matrix_SymComplexSparse<br/>
+Matrix_ArrayComplexSparse.hxx
+ Matrix_ArrayComplexSparse.cxx<br/>
+Matrix_ComplexSparse.hxx
+ Matrix_ComplexSparse.cxx<br/>
+Matrix_SymComplexSparse.hxx 
+Matrix_SymComplexSparse.cxx</p>
+
+
+
+<div class="separator"><a name="Write"></a></div>
+
+
+
+<h3>Write</h3>
+
+
+<h4>Syntax : </h4>
+ <pre class="syntax-box">
+  void Write(string name)
+</pre>
+
+
+<p>This method writes the matrix on a file in binary format. This format is not portable,
+ so if you read a matrix with method <a href="#Read">Read</a>, the storage should be the same as the storage used
+ when the matrix has been written. </p>
+
+
+<h4>Example : </h4>
+\precode
+// storage ArrayRowSymComplexSparse when writing
+Matrix<double, General, ArrayRowSymComplexSparse> A(8, 8);
+A.Write("MyMatrix.dat");
+
+// same storage when reading the matrix
+Matrix<double, General, ArrayRowSymComplexSparse> B;
+B.Read("MyMatrix.dat");
+
+\endprecode
+
+
+<h4>Related topics : </h4>
+<p><a href="#Read">Read</a><br/>
+<a href="#WriteText">WriteText</a></p>
+
+
+<h4>Location :</h4>
+<p>Class Matrix_ArrayComplexSparse<br/>
+Class Matrix_ComplexSparse<br/>
+Class Matrix_SymComplexSparse<br/>
+Matrix_ArrayComplexSparse.hxx
+ Matrix_ArrayComplexSparse.cxx<br/>
+Matrix_ComplexSparse.hxx
+ Matrix_ComplexSparse.cxx<br/>
+Matrix_SymComplexSparse.hxx 
+Matrix_SymComplexSparse.cxx</p>
+
+
+
+<div class="separator"><a name="Read"></a></div>
+
+
+
+<h3>Read</h3>
+
+
+<h4>Syntax : </h4>
+ <pre class="syntax-box">
+  void Read(string name)
+</pre>
+
+
+<p>This method reads the matrix from a file in binary format. This format is not portable,
+ so if you read a matrix with method <a href="#Read">Read</a>, the storage should be the same as the storage used
+ when the matrix has been written. </p>
+
+
+<h4>Example : </h4>
+\precode
+// storage ArrayRowSymComplexSparse when writing
+Matrix<double, General, ArrayRowSymComplexSparse> A(8, 8);
+A.Write("MyMatrix.dat");
+
+// same storage when reading the matrix
+Matrix<double, General, ArrayRowSymComplexSparse> B;
+B.Read("MyMatrix.dat");
+
+\endprecode
+
+
+<h4>Related topics : </h4>
+<p><a href="#Write">Write</a><br/>
+<a href="#ReadText">ReadText</a></p>
+
+
+<h4>Location :</h4>
+<p>Class Matrix_ArrayComplexSparse<br/>
+Class Matrix_ComplexSparse<br/>
+Class Matrix_SymComplexSparse<br/>
+Matrix_ArrayComplexSparse.hxx
+ Matrix_ArrayComplexSparse.cxx<br/>
+Matrix_ComplexSparse.hxx
+ Matrix_ComplexSparse.cxx<br/>
+Matrix_SymComplexSparse.hxx 
+Matrix_SymComplexSparse.cxx</p>
+
+
+
+<div class="separator"><a name="WriteText"></a></div>
+
+
+
+<h3>WriteText</h3>
+
+
+<h4>Syntax : </h4>
+ <pre class="syntax-box">
+  void WriteText(string name)
+  void WriteText(string name, bool without_brackets)
+  void WriteText(ostream out)
+  void WriteText(ostream out, bool without_brackets)
+</pre>
+
+
+<p>This method writes the matrix on a file in ascii format. The row and column numbers are incremented
+ in order to satisfy the 1-index convention (used by Matlab). The complex values are written by default with parenthesis.
+ The file will look like </p>
+
+<pre class="fragment">
+1 3 (0.5432143,-2.34433)
+2 4 (2.90843,0.0)
+3 2 (-1.232409,-0.090982)
+</pre>
+
+<p>If you prefer to not have those brackets, but real part and imaginary part in separated columns, you have
+ to put true in the optional argument. In that case, the file will be : </p>
+
+<pre class="fragment">
+1 3 0.5432143 -2.34433
+2 4 2.90843 0.0
+3 2 -1.232409 -0.090982
+</pre>
+
+<p> The Matlab code would be in that last case : </p>
+
+<pre class="fragment">
+M = load('matrix.dat');
+A = spconvert(M(:,1:3)) + 1i*spconvert(M(:,[1,2,4]));
+</pre>
+
+<p> With Python, it is similar : </p>
+
+<pre class="fragment">
+from scipy.sparse import *
+
+A = loadtxt('matrix.dat')
+B = coo_matrix((A[:,2],(A[:,0]-1,A[:,1]-1))) + 1j*coo_matrix((A[:,3],(A[:,0]-1,A[:,1]-1)))
+</pre>
+
+<h4>Example : </h4>
+\precode
+Matrix<double, General, ArrayRowComplexSparse> A(8, 8);
+// filling the matrix
+A.AddInteraction(0, 3, complex<double>(0.3, 1.2));
+// ...
+
+// then writing on the disk
+A.WriteText("my_matrix.dat");
+
+\endprecode
+
+
+<h4>Related topics : </h4>
+<p><a href="#Write">Write</a><br/>
+<a href="#ReadText">ReadText</a></p>
+
+
+<h4>Location :</h4>
+<p>Class Matrix_ArrayComplexSparse<br/>
+Class Matrix_ComplexSparse<br/>
+Class Matrix_SymComplexSparse<br/>
+Matrix_ArrayComplexSparse.hxx
+ Matrix_ArrayComplexSparse.cxx<br/>
+Matrix_ComplexSparse.hxx
+ Matrix_ComplexSparse.cxx<br/>
+Matrix_SymComplexSparse.hxx 
+Matrix_SymComplexSparse.cxx</p>
+
+
+
+<div class="separator"><a name="ReadText"></a></div>
+
+
+
+<h3>ReadText</h3>
+
+
+<h4>Syntax : </h4>
+ <pre class="syntax-box">
+  void ReadText(string name)
+  void ReadText(string name, bool without_brackets)
+  void ReadText(istream in)
+  void ReadText(istream in, bool without_brackets)
+</pre>
+
+
+<p>This method reads the matrix from a file in ascii format. The row and column numbers on the 
+file should be based on the 1-index convention (used by Matlab). The complex values are expected to be by default with parenthesis.
+ The file would look like (row numbers are placed on the first column, column numbers in the second column, and values and the third column) </p>
+
+<pre class="fragment">
+1 3 (0.5432143,-2.34433)
+2 4 (2.90843,0.0)
+3 2 (-1.232409,-0.090982)
+</pre>
+
+<p>If your file is written without those brackets, but real part and imaginary part in separated columns, you have
+ to put true in the optional argument. In that case, the file should be : </p>
+
+<pre class="fragment">
+1 3 0.5432143 -2.34433
+2 4 2.90843 0.0
+3 2 -1.232409 -0.090982
+</pre>
+
+<h4>Example : </h4>
+\precode
+Matrix<double, General, ArrayRowComplexSparse> A;
+// you can read A from a file
+A.ReadText("my_matrix.dat");
+
+\endprecode
+
+
+<h4>Related topics : </h4>
+<p><a href="#Read">Read</a><br/>
+<a href="#WriteText">WriteText</a></p>
+
+
+<h4>Location :</h4>
+<p>Class Matrix_ArrayComplexSparse<br/>
+Class Matrix_ComplexSparse<br/>
+Class Matrix_SymComplexSparse<br/>
+Matrix_ArrayComplexSparse.hxx
+ Matrix_ArrayComplexSparse.cxx<br/>
+Matrix_ComplexSparse.hxx
+ Matrix_ComplexSparse.cxx<br/>
+Matrix_SymComplexSparse.hxx 
+Matrix_SymComplexSparse.cxx</p>
+
+
+
+*/

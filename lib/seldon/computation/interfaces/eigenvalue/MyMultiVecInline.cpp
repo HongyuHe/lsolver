@@ -1,0 +1,9 @@
+#ifndef SELDON_FILE_MY_MULTIVEC_INLINE_CPP
+#define SELDON_FILE_MY_MULTIVEC_INLINE_CPP
+
+namespace Anasazi
+{
+  
+}
+
+#endif // MY_MULTIVECTOR_CPP

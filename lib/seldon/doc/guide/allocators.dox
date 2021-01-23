@@ -1,0 +1,27 @@
+/*! \file allocators.dox
+    \brief Allocators.
+*/
+
+/*!
+\page allocators Allocators
+
+<p>Allocators are used to allocate and deallocate memory. The last template argument of vectors and matrices is the allocator. For a vector: <code>Vector&lt;double, Vect_Full, CallocAlloc&lt;double&gt; &gt;</code>. <code>CallocAlloc</code> is an allocator based on <code>calloc</code>. <code>MallocAlloc</code> is another allocator based on <code>malloc</code>. The third available allocator is <code>NewAlloc</code>, based on <code>new</code>. The fourth allocator is <code>MallocObject</code> and allows to allocate objects while using malloc/free functions. The last one is <code>NaNAlloc</code>, based on <code>malloc</code> and which initializes allocated elements to "not a number". If a vector or a matrix managed by <code>NaNAlloc</code> is not properly filled, there will still be NaNs in the vector or the matrix, which is easy to detect.</p>
+
+<p>The default allocator is <code>MallocAlloc</code> for basic types (bool, float, double, int, complex<double>, etc), NewAlloc otherwise. The default allocator may be changed thanks to <code>SELDON_DEFAULT_ALLOCATOR</code>:</p>
+
+<p><code>#define SELDON_DEFAULT_ALLOCATOR NewAlloc</code> defines <code>NewAlloc</code> as the default allocator (but this is already the case by default). This line must be present in the file SeldonFlag.hxx is included (which is the case if you include <code>SeldonLib.hxx</code>). If you are including the file Seldon.hxx, this line must be put before <code>Seldon.hxx</code> is included. The file DefaultAllocator contains a list of default allocators for each given type (this is how we enforce MallocAlloc for basic types).  </p>
+
+\precode
+#define SELDON_DEFAULT_ALLOCATOR NewAlloc
+#include "Seldon.hxx"
+
+using namespace Seldon;
+
+// For vector containing integers, MallocAlloc is okay
+Vector<int, Vect_Full, MallocAlloc<int> > X;
+
+// For vector containing vectors, NewAlloc or MallocObject is needed
+Vector<Vector<double> > Xvec;
+\endprecode
+
+*/
