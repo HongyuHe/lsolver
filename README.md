@@ -2,6 +2,8 @@
 
 [![Maintenance][maintain-badge]][maintain-act] [![PRs Welcome][pr-badge]][pr-act] [![Build Status][travisci-badge]][travisci-builds]
 
+![](.github/demo.gif)
+
 #### Table of contents
 
 - :anchor: [Introduction](#anchor-introduction)
