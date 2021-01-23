@@ -48,6 +48,8 @@ The current development is on **Linux (Debian)**. Use **gcc-10** to complie the 
 Run the following commands to build this project.
 
 ```sh
+git clone -j8 repository-url
+
 (cd lib/&&sh mm_io.sh) && make all
 ```
 
