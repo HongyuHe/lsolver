@@ -171,17 +171,17 @@ I benchmarked the execution time of the three algorithms on the two matrices. Su
 <img src=.github/img/torso1.png width=50% margin-left=auto margin-right=auto><img src=.github/img/TSOPF.png width=50% margin-left=auto margin-right=auto>
 
 
-Note that, I did not implement the full version of the `graph` algorithm specified in [2]. A fully-fledged `graph` algorithm employs a *pruned* matrix tree, the etree [1]. The etree not only preserves the scarcity of the matrix but also embodies the dependencies of the entries of the graph in topological order. 
+Note that I have not yet implement the full version of the `graph` algorithm specified in [2]. A fully-fledged `graph` algorithm employs a *pruned* matrix tree, the etree [1]. The etree not only preserves the scarcity of the matrix but also embodies the dependencies of the entries of the graph in topological order. 
 
 <img src=.github/img/etree.png width=70% margin-left=auto margin-right=auto>
 
-:information_source:  Please see [1] for theory background and `./src/serial.cpp` for implementation details.
+:information_source: Please see [1] for theory background and `./src/serial.cpp` for implementation details.
 
 ### Parallel optimization
 
 I used OpenMP to parallel the aforementioned three methods. The results of the experiments on the 2 matrices are shown in the following plots. (`_par` stands for the parallel implementations of the corresponding algorithm.)
 
-:warning: Note that all the following experiments are conducted on my laptop, which is a bit “powerless”. **My computer has 1 socket in total and 4 cores per chip. Each chip has 2 CPU units, i.e. each of them can run 2 threads in parallel. That is to say, the machine can only truly parallel a maximum of 8 threads. That's why the benchmarking is capped by 8 threads.**
+:warning: All the the following experiments are conducted on my laptop, which is a bit “powerless”. **My computer has 1 socket in total and 4 cores per chip. Each chip has 2 CPU units, i.e. each of them can run 2 threads in parallel. That is to say, the machine can only truly parallel a maximum of 8 threads. That's why the benchmarking is capped by 8 threads.**
 
 <img src=.github/img/naive_par_torso1.png width=50% margin-left=auto margin-right=auto><img src=.github/img/naive_par_TSOPF.png width=50% margin-left=auto margin-right=auto>
 
@@ -190,10 +190,14 @@ I used OpenMP to parallel the aforementioned three methods. The results of the e
 
 <img src=.github/img/graph_par_torso1.png width=50% margin-left=auto margin-right=auto><img src=.github/img/graph_par_TSOPF.png width=50% margin-left=auto margin-right=auto>
 
+:information_source: To run experiences for parallel implementations, use the following command, and replace the `N` with the number of threads needed.
+
+```sh
+export OMP_NUM_THREADS=N && make run_test[%d]
+```
 
 
-
-As we can see from the above figures, almost all parallel implementations suffered from vital overhead except the `guarded_par`. I deem it is due to the following three reasons
+As we can see from the above figures, almost all parallel implementations incurred overhead except the `guarded_par`. I deem it is due to the following three reasons
 
 1. I did not rewrite the serial programs to fit the OpenMP constructs but rather made as minimal changes as possible.
 2. The paralleled portions of the serial programs are not computationally heavy. That is the overhead of multithreading, e.g. creating, queueing and managing threads, cancelled or even overshadowed the small benefits that the parallelism brings about.
@@ -205,7 +209,11 @@ As we can see from the above figures, almost all parallel implementations suffer
 
 ## :ballot_box_with_check: Retrospective
 
-* First and foremost, the most striking fact to me is that how efficient a straightforward solution can be as the `guarded` approach, albeit simple, stands out. I believe that in nowadays research, reviewing or revitalizing simple methods could be powerful.
+* The current version of this project has developed a simple infrastructure that enables batch testing and experiments on solving lower triangular linear systems.
+
+* Three algorithms, namely, the `naive`, the `guarded` and the `graph`, have been implemented. Correctness is guaranteed.
+
+* The most striking fact to me is that how efficient a straightforward solution can be as the `guarded` approach, albeit simple, stands out. I believe that in nowadays research, reviewing or revitalizing simple methods could be powerful.
 
 * As mentioned in the Serial optimization subsection, the `graph` algorithm has not been fully developed. The `etree` and the node order, if implemented, should be able to boost the performance of `graph` [4].
 
@@ -217,7 +225,7 @@ As we can see from the above figures, almost all parallel implementations suffer
 
 * Again, the parallel implementations could be improved by rewriting the three algorithms with OpenMP.
 
-* Later, I will host the project directly in a local clusters to conquer the “eight-thread barrier”.  
+* Later, I will host the project directly in a local clusters to overcome the “eight-thread barrier”.  
 
 <br>
 
