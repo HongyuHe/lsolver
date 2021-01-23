@@ -18,7 +18,7 @@
 
 ## :anchor: Introduction
 
-A myriad of applications hinges on sparse matrix operations, such as computer networks, social graph, 3D visualization, PageRank, integer factorization, machine learning, etc. However, they also tend to be computationally heavy and resource thirsty. As the size and complexity of those problems grows, efficient processing for sparse linear algebra operations on many-core systems is urgently needed.
+Myriads of applications hinge on sparse matrix operations, such as computer networks, social graph, 3D visualization, PageRank, integer factorization, machine learning, etc. However, they also tend to be computationally heavy and resource thirsty. As the size and complexity of those problems grows, efficient processing for sparse linear algebra operations on many-core systems is urgently needed.
 
 **lsolver** is a basic infrastructure developed to optimize the performance of the sparse matrix triangular solve.
 
@@ -39,7 +39,6 @@ The structure of the project is as follows.
 <br>
 
 ## :hammer_and_pick: Setup
-
 
 ### Environment
 
@@ -87,6 +86,7 @@ Run the following commands to execute **lsolver**.
 
 ```sh
 make lsolver
+
 ./lsover ./path/to/L-matrix ./path/to/b-matrix
 ```
 
