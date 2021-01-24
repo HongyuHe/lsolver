@@ -24,16 +24,35 @@ Myriads of applications hinge on sparse matrix operations, such as computer netw
 
 The structure of the project is as follows. 
 
-```json
+```c
 .
 ├── data
-|   ├── matrices // Put datasets here.
-|   └── stat     // Raw data of the experiments.
+|   ├── matrices    // Put datasets here.
+|   ├── out         // Results of lower triangular solve.
+|   └── stat        // Raw data of the experiments.
 ├── include
-├── lib          // External libraries.
-├── obj          // Compliled binary files.
+│   ├── mm_io.h
+│   ├── parallel.h  // Parallel implementations.
+│   ├── serial.h    // Serial implementations.
+│   ├── util.h
+│   ├── verify.h    // Result verification algorithm.
+│   └── wrapper.h   // Wrapper functions for external libs.
+├── lib             // External libraries.
+├── obj             // Compliled binary files.
 ├── src
-└── test    
+│   ├── parallel.cpp
+│   ├── plot.py     // Script for plotting experiment data.
+│   ├── run.cpp     // Project entry.
+│   ├── serial.cpp
+│   ├── util.cpp
+│   └── verify.cpp
+└── test
+    ├── test1.cpp   // Test on trivial1.
+    ├── test2.cpp   // Test on trivial2.
+    ├── test3.cpp   // Test on torso1.
+    ├── test4.cpp   // Test on TSOPF_RS_b678_c2.
+    ├── test5.cpp   // Test on torso1 (parallel).
+    └── test6.cpp   // Test on TSOPF_RS_b678_c2.mtx (parallel).
 ```
 
 <br>
@@ -44,6 +63,8 @@ The structure of the project is as follows.
 
 The current development is on **Linux (Debian)**. Use **gcc-10** to complie the source code. Two external libraries, [MM_IO][mmio] and [Seldon][seldom] are used to handle part of the I/O operations.
 
+:information_source: Please see `./include/wrapper.h` for integration details.
+
 ### Build
 
 Run the following commands to build this project.
@@ -51,7 +72,7 @@ Run the following commands to build this project.
 ```sh
 git clone -j8 repository-url
 
-(cd lib/&&sh mm_io.sh) && make all
+(cd lib && sh mm_io.sh) && make all
 ```
 
 Use the following if you have built it once.
@@ -72,7 +93,7 @@ Download the two matrices [TSOPF_RS_b678_c2​][tsopf] and [​torso1][torso1]. 
 
 Note that matrices have to be in the [Matrix Market format][mmformat]. 
 
-:information_source:  Please see the example files in `.\data\trivial`. 
+:information_source: Please see the example files in `.\data\trivial`. 
 
 (The `*_tri.mtx` files are corresponding lower triangular matrices. They are not required as this infrastructure will generate them when processing their original matrices.)
 
@@ -98,7 +119,7 @@ make CFLAGS=-DTEST lsolver
 
 **The verification algorithm will be introduced in the following sections.**
 
-:information_source:  Please see the `./src/verfy.cpp` for details.
+:information_source: Please see the `./src/verfy.cpp` for details.
 
 ### Testing
 
@@ -108,13 +129,13 @@ To invoke all tests in one go, use
 make testall
 ```
 
-Run a single test case
+To run a single test case, use
 
 ```sh
 make run_test[%d]
 ```
 
-Build a single test case
+To build a single test case, use
 
 ```sh
 make test[%d]
@@ -126,7 +147,7 @@ make test[%d]
 
 There are many ways to solve a sparse lower triangular system. This project implements three simple methods, namely, `naive`, `guarded` and `graph`.
 
- :information_source:  Please see `./src/serial.cpp` and `./src/parallel` for implementation details.
+ :information_source: Please see `./src/serial.cpp` and `./src/parallel` for implementation details.
 
 ### The `naive`
 The `naive` algorithm is nothing but a simple forward method that solves the system by traversing all columns and subsequently subtracting them from the b-matrix. In this way, the value of the top diagonal element `v_i` on the fringe at each iteration equates is the value of `x_i`. The time complexity of this algorithm is bounded by `O(|b|+f+n)` (which is asymptotically `O(f+n)`), where `b` is the size of the b-matrix and `f` is the number of FLOPs (floating-point operations). 
@@ -149,9 +170,9 @@ N.B. the definition of “zero” here is a bit subtle. It does not mean the val
 
 The verification algorithm takes the lower triangular matrix, the b-matrix and the computed result as inputs and produces a boolean value as output. It takes advantage of the Compressed sparse column (CSC) format. It first traverses the matrix column by column. Then it computes and accumulates the product with the corresponding `x` in the results along the way. After finishing the iterations, it compares the accumulated values of each column with that of the b-matrix to verify the results. 
 
-The fault tolerance value (TOL) of the current implementation is `10^12`. 
+The fault tolerance value (`TOL`) of the current implementation is `10^12`. 
 
-:information_source:  Please see `./src/verify.cpp` for implementation details.
+:information_source: Please see `./src/verify.cpp` for implementation details.
 
 <br>
 
@@ -203,7 +224,7 @@ As we can see from the above figures, almost all parallel implementations incurr
 2. The paralleled portions of the serial programs are not computationally heavy. That is the overhead of multithreading, e.g. creating, queueing and managing threads, cancelled or even overshadowed the small benefits that the parallelism brings about.
 3. Again, my implementations could be improved :)  
 
-:information_source:  Please see the`./src/plot.py` for scripting details and `./src/parallel.cpp` for implementation details.
+:information_source: Please see the`./src/plot.py` for scripting details and `./src/parallel.cpp` for implementation details.
 
 <br>
 

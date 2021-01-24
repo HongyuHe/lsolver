@@ -47,7 +47,7 @@ void produceLowerTriMtx(std::vector<std::string> fnames) {
     if ((ret_code = mm_read_mtx_crd_size(fh_in, &M, &N, &count)) != 0)
         exit(EXIT_FAILURE);
 
-    /* reseve memory for matrices */
+    /* Reseve memory for matrices */
 
     I = (int *)malloc(count * sizeof(int));
     J = (int *)malloc(count * sizeof(int));
@@ -79,7 +79,7 @@ void produceLowerTriMtx(std::vector<std::string> fnames) {
 std::string getOutputName(std::string fname) {
     return fname.substr(0, fname.find(".mtx"))
                 .replace(fname.find("matrices"), 
-                    sizeof("matrices") - 1, "out");
+                         sizeof("matrices") - 1, "out");
 }
 
 void writeResults(const std::string& fname, 
