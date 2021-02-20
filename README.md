@@ -252,15 +252,15 @@ As we can see from the above figures, almost all parallel implementations incurr
 
 ## :pencil2: Reference
 
-[1] Davis, T.A., et al, 2016. "A survey of direct methods for sparse linear systems. Acta Numerica", 25, pp.383-566.
+[1] Davis, T.A. et al., "A survey of direct methods for sparse linear systems," Acta Numer'16.
 
-[2] Davis, Timothy. "A. Direct methods for sparse linear systems. Society for Industrial and Applied Mathematics", 2006.
+[2] Davis, "A Direct methods for sparse linear systems," SIAM 2006.
 
-[3] Cheshmi, Kazem et al., "ParSy: Inspection and transformation of sparse matrix computations for parallelism." SC18: International Conference for High Performance Computing, Networking, Storage and Analysis. IEEE, 2018.
+[3] Cheshmi, Kazem et al., "ParSy: Inspection and transformation of sparse matrix computations for parallelism," SC'18.
 
-[4] Cheshmi, Kazem et al., "NASOQ: numerically accurate sparsity-oriented QP solver." ACM Transactions on Graphics (TOG) 39.4 2020.
+[4] Cheshmi, Kazem et al., "NASOQ: numerically accurate sparsity-oriented QP solver," TOG'20.
 
-[5] Bukh, Per Nikolaj D. "The art of computer systems performance analysis, techniques for experimental design, measurement, simulation and modeling." 1992.
+[5] Jain, "The art of computer systems performance analysis, techniques for experimental design, measurement, simulation and modeling." 1992.
 
 ---
 
