@@ -52,7 +52,7 @@ The structure of the project is as follows.
     ├── test3.cpp   // Test on torso1.
     ├── test4.cpp   // Test on TSOPF_RS_b678_c2.
     ├── test5.cpp   // Test on torso1 (parallel).
-    └── test6.cpp   // Test on TSOPF_RS_b678_c2.mtx (parallel).
+    └── test6.cpp   // Test on TSOPF_RS_b678_c2 (parallel).
 ```
 
 <br>
